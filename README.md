@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.0
+# Pulso Digital — v1.4.1
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -26,6 +26,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - `npm run newsroom -- help` apresenta seleção, pesquisa, dossiês, redação, verificação, imagem, consumo e importação de **rascunhos privados**. Configuração e limites: [newsroom/README.md](newsroom/README.md).
 - Pesquisa usa referências originais do radar e URLs adicionais explicitamente autorizadas, com HTTPS, hosts permitidos, proteção de DNS, `robots.txt` e extração curta de HTML por `parse5@7.3.0`. Não há busca automática por Google Search, nem reprodução integral de textos.
 - Groq é o provedor prioritário configurável; Gemini permanece alternativa sem modelo pré-selecionado. Chamadas reais exigem confirmação explícita da modalidade gratuita e chave apenas no ambiente local ou `.env` ignorado. O mock é exclusivamente sintético e bloqueado para importação real.
+- A homologação 1.4.1 limita cada requisição a 7.000 tokens reservados e mantém intervalo mínimo de 60 segundos entre chamadas, abaixo da referência pública de 8.000 tokens/minuto da Groq Free. O limite real da organização deve ser conferido na conta e nos cabeçalhos de resposta; sem conta Free confirmada não há chamada real.
 - Dossiês, tentativas de IA, rascunhos e imagens preparadas ficam em `newsroom/data/`, ignorado pelo Git. O newsroom não aprova nem publica notícias. O portal e as oito matérias permanecem inalterados.
 
 ## GitHub Pages

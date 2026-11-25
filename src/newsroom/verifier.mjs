@@ -5,6 +5,7 @@ export function verifyDraft(draft,dossier){
   const errors=[],warnings=[];
   if(!draft||typeof draft!=='object'||Array.isArray(draft))return {valid:false,errors:[{code:'JSON_SHAPE'}],warnings};
   const evidence=new Map(dossier.evidence.map(e=>[e.id,e]));
+  const sources=new Map(dossier.sources.map(s=>[s.id,s]));
   const allowed=['title','slug','summary','category','tags','sections','claims','imageSuggestion','insufficient','reason'];
   for(const k of Object.keys(draft))if(!allowed.includes(k))errors.push({code:'UNKNOWN_FIELD',field:k});
   if(draft.insufficient)return {valid:false,insufficient:true,errors:[{code:'RESEARCH_INSUFFICIENT',message:String(draft.reason||'Evidências insuficientes.')}],warnings};
@@ -23,7 +24,7 @@ export function verifyDraft(draft,dossier){
     if(!paragraph||c.text!==paragraph||covered.has(key))errors.push({code:'CLAIM_MAPPING',index:i});covered.add(key);
     if(!Array.isArray(c.evidenceIds)||!c.evidenceIds.length||c.evidenceIds.some(id=>!evidence.has(id)))errors.push({code:'UNKNOWN_EVIDENCE',index:i});
     if(!['confirmed','expectation','rumor','opinion'].includes(c.classification))errors.push({code:'CLAIM_TYPE',index:i});
-    const excerpts=(c.evidenceIds||[]).map(id=>evidence.get(id)?.excerpt||'').join(' ');
+    const excerpts=(c.evidenceIds||[]).map(id=>{const item=evidence.get(id);return [item?.excerpt,sources.get(item?.sourceId)?.title].filter(Boolean).join(' ');}).join(' ');
     const numerals=(c.text||'').match(/\b\d+(?:[.,]\d+)?\b/g)||[];
     for(const number of numerals)if(!excerpts.includes(number))errors.push({code:'UNSUPPORTED_NUMBER',index:i,value:number});
     if(/[“”"«»]/.test(c.text||'')&&!excerpts.includes((c.text.match(/[“"«](.+?)[”"»]/)||[])[1]||'\u0000'))errors.push({code:'UNSUPPORTED_QUOTE',index:i});
