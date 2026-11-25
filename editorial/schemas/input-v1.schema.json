@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulso-digital:editorial:input:1.0",
+  "title": "Pulso Digital — entrada editorial v1.0",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "enum": [
+        "1.0"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update"
+      ]
+    },
+    "targetSlug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "json"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "type",
+        "reference"
+      ],
+      "additionalProperties": false
+    },
+    "article": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "tecnologia",
+            "ia",
+            "games",
+            "espaco",
+            "tendencias"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "maxItems": 15
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "paragraphs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 6000
+                },
+                "maxItems": 30
+              }
+            },
+            "required": [
+              "title",
+              "paragraphs"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "pt-BR"
+          ]
+        },
+        "editorial": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "name",
+            "role"
+          ],
+          "additionalProperties": false
+        },
+        "eventDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "eventLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "checkedAt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "publishedDate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "url",
+              "checkedAt"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "section": {
+                "type": "number"
+              },
+              "paragraph": {
+                "type": "number"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 6000
+              },
+              "classification": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "expectation",
+                  "rumor",
+                  "opinion"
+                ]
+              },
+              "sourceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "maxItems": 30
+              },
+              "evidence": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              }
+            },
+            "required": [
+              "id",
+              "section",
+              "paragraph",
+              "text",
+              "classification",
+              "sourceIds",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 900
+        },
+        "image": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "alt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "caption": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "credit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "authorization": {
+              "type": "object",
+              "properties": {
+                "basis": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "basis",
+                "url"
+              ],
+              "additionalProperties": false
+            },
+            "reuseJustification": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "record": {
+              "type": "object"
+            },
+            "assets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "to": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 400
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 5
+            }
+          },
+          "required": [
+            "key",
+            "alt",
+            "caption",
+            "credit",
+            "authorization"
+          ],
+          "additionalProperties": false
+        },
+        "changeNote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "operation",
+    "synthetic",
+    "origin",
+    "article"
+  ],
+  "additionalProperties": false
+}

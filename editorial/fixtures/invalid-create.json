@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "id": "fixture-invalida",
+  "operation": "create",
+  "synthetic": true,
+  "origin": {
+    "type": "json",
+    "reference": "Fixture sintética PD-003; não contém apuração ou pauta real."
+  },
+  "article": {
+    "title": "<script>alert(1)</script>",
+    "slug": "../../escape",
+    "summary": "Fixture sintética para validar o contrato e o ciclo editorial; não é notícia real.",
+    "category": "categoria-inexistente",
+    "tags": [
+      "Simulação sintética",
+      "Teste editorial"
+    ],
+    "language": "pt-BR",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "sections": [
+      {
+        "title": "Cenário sintético",
+        "paragraphs": [
+          "Esta é uma simulação sintética para testar o fluxo editorial local, sem apresentar uma notícia real."
+        ]
+      },
+      {
+        "title": "Validação simulada",
+        "paragraphs": [
+          "O cenário sintético demonstra a validação de dados estruturados em um ambiente isolado."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "fonte-sintetica-um",
+        "name": "Referência sintética um — não consultada",
+        "url": "https://example.invalid/referencia-um",
+        "checkedAt": "2000-01-01",
+        "kind": "Fixture sintética; não é evidência factual real"
+      },
+      {
+        "id": "fonte-sintetica-dois",
+        "name": "Referência sintética dois — não consultada",
+        "url": "https://example.invalid/referencia-dois",
+        "checkedAt": "2000-01-01",
+        "kind": "Fixture sintética; não é evidência factual real"
+      }
+    ],
+    "claims": [
+      {
+        "id": "afirmacao-sintetica-1",
+        "section": 0,
+        "paragraph": 0,
+        "text": "Esta é uma simulação sintética para testar o fluxo editorial local, sem apresentar uma notícia real.",
+        "classification": "confirmed",
+        "sourceIds": [
+          "fonte-sintetica-um"
+        ],
+        "evidence": "Evidência exclusivamente sintética de cobertura do contrato; sem consulta externa."
+      },
+      {
+        "id": "afirmacao-sintetica-2",
+        "section": 1,
+        "paragraph": 0,
+        "text": "O cenário sintético demonstra a validação de dados estruturados em um ambiente isolado.",
+        "classification": "confirmed",
+        "sourceIds": [
+          "fonte-sintetica-dois"
+        ],
+        "evidence": "Evidência exclusivamente sintética de cobertura do contrato; sem consulta externa."
+      }
+    ],
+    "image": {
+      "key": "network",
+      "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+      "alt": "Ilustração conceitual própria de uma rede de agentes e sistemas conectados.",
+      "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+      "authorization": {
+        "basis": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+        "url": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs"
+      },
+      "reuseJustification": "A arte própria de conexões representa o fluxo modular nesta simulação de tecnologia, sem ilustrar outro acontecimento."
+    }
+  }
+}

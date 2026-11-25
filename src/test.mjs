@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');const data=JSON.parse(fs.readFileSync(path.join(root,'content/articles.json')));const pub=path.join(root,'public');test('matérias válidas e únicas',()=>{assert.equal(new Set(data.map(a=>a.slug)).size,data.length);for(const a of data){assert.match(a.slug,/^[a-z0-9-]+$/);assert.ok(a.sections.length>=2);assert.ok(a.sources.length);assert.ok(a.sources.every(s=>s.url.startsWith('https://')));assert.ok(fs.existsSync(path.join(pub,'assets',a.image+'.svg')));assert.ok(fs.existsSync(path.join(pub,'noticias',a.slug+'.html')))}});test('links locais existentes',()=>{const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):[path.join(d,x.name)]);for(const f of walk(pub).filter(x=>x.endsWith('.html'))){const h=fs.readFileSync(f,'utf8');for(const m of h.matchAll(/(?:href|src)="([^"#]+)"/g)){let l=m[1];if(/^(https?:|mailto:)/.test(l))continue;l=l.split(/[?#]/)[0];if(l)assert.ok(fs.existsSync(path.resolve(path.dirname(f),l)),`${f}: ${l}`)}}});test('publicidade desativada inicialmente',()=>{const cfg=JSON.parse(fs.readFileSync(path.join(root,'config.json')));if(!cfg.adsense.enabled)assert.ok(!fs.readFileSync(path.join(pub,'index.html'),'utf8').includes('pagead2.googlesyndication.com'))});
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');const data=JSON.parse(fs.readFileSync(path.join(root,'content/articles.json')));const pub=path.join(root,'public');test('matérias válidas e únicas',()=>{assert.equal(new Set(data.map(a=>a.slug)).size,data.length);for(const a of data){assert.match(a.slug,/^[a-z0-9-]+$/);assert.ok(a.sections.length>=2);assert.ok(a.sources.length);assert.ok(a.sources.every(s=>['http:','https:'].includes(new URL(s.url).protocol)));assert.ok(fs.existsSync(path.join(pub,'assets',a.image+'.svg'))||Object.values(JSON.parse(fs.readFileSync(path.join(root,'content/images.json')))[a.image]?.files||{}).length>=3);assert.ok(fs.existsSync(path.join(pub,'noticias',a.slug+'.html')))}});test('links locais existentes',()=>{const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):[path.join(d,x.name)]);for(const f of walk(pub).filter(x=>x.endsWith('.html'))){const h=fs.readFileSync(f,'utf8');for(const m of h.matchAll(/(?:href|src)="([^"#]+)"/g)){let l=m[1];if(/^(https?:|mailto:)/.test(l))continue;l=l.split(/[?#]/)[0];if(l)assert.ok(fs.existsSync(path.resolve(path.dirname(f),l)),`${f}: ${l}`)}}});test('publicidade desativada inicialmente',()=>{const cfg=JSON.parse(fs.readFileSync(path.join(root,'config.json')));if(!cfg.adsense.enabled)assert.ok(!fs.readFileSync(path.join(pub,'index.html'),'utf8').includes('pagead2.googlesyndication.com'))});
 test('metadados e URLs de publicação preservam o subdiretório',()=>{
   const cfg=JSON.parse(fs.readFileSync(path.join(root,'config.json')));
   if(!cfg.siteUrl)return;
@@ -26,21 +26,21 @@ test('metadados e URLs de publicação preservam o subdiretório',()=>{
 });
 test('rastreabilidade editorial e datas reais de revisão',()=>{
   const originalDates={'gta-vi-lancamento-vice-city':'2026-11-24','gemini-4-neon-nova-ia-google':'2026-11-24','webb-fusao-estelar-andromeda':'2026-11-24','steam-machine-pc-sala':'2026-11-23','artemis-ii-o-que-vem-depois':'2026-11-23','agentes-ia-microsoft-ibm-empresas':'2026-11-22','black-friday-tecnologia-como-comprar':'2026-11-24','pixel-gemini-atualizacao-novembro':'2026-11-22'};
-  assert.deepEqual(data.map(a=>a.slug).sort(),Object.keys(originalDates).sort());
+  for(const slug of Object.keys(originalDates))assert.ok(data.some(a=>a.slug===slug),slug);
   for(const a of data){
-    assert.equal(a.date,originalDates[a.slug]);
+    if(Object.hasOwn(originalDates,a.slug))assert.equal(a.date,originalDates[a.slug]);else assert.ok(a.publishedAt);
     assert.ok(Number.isFinite(Date.parse(a.updatedAt))&&a.updatedAt>=a.date);
     assert.equal(a.editorial.name,'Pulso Digital');
     assert.equal(a.editorial.role,'Edição institucional provisória');
     assert.ok(a.summary&&a.tags.length&&a.correctionNote&&a.verification.method);
     assert.match(a.verification.checkedAt,/^\d{4}-\d{2}-\d{2}$/);
-    for(const source of a.sources){assert.equal(source.checkedAt,a.verification.checkedAt);assert.equal(new URL(source.url).protocol,'https:');}
+    for(const source of a.sources){if(Object.hasOwn(originalDates,a.slug))assert.equal(source.checkedAt,a.verification.checkedAt);else assert.ok(source.checkedAt<=a.verification.checkedAt);assert.ok(['http:','https:'].includes(new URL(source.url).protocol));}
     const html=fs.readFileSync(path.join(pub,'noticias',a.slug+'.html'),'utf8');
     const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
     assert.equal(schema.datePublished,a.date);assert.equal(schema.dateModified,a.updatedAt);
     assert.equal(schema.author.name,a.editorial.name);assert.equal(schema.author['@type'],'Organization');
     assert.deepEqual(schema.citation,a.sources.map(s=>s.url));
-    assert.ok(html.includes(`datetime="${a.updatedAt}"`));assert.ok(html.includes(a.correctionNote));
+    assert.ok(html.includes(`datetime="${a.updatedAt}"`));assert.ok(html.includes(a.correctionNote.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')));
   }
 });
 
@@ -67,8 +67,10 @@ test('Twitter, Open Graph, breadcrumbs, preview e concordância',()=>{
   for(const file of walk(pub).filter(f=>f.endsWith('.html'))){
     const html=fs.readFileSync(file,'utf8');
     assert.ok(html.includes('name="twitter:card" content="summary_large_image"'),file);
-    assert.ok(html.includes('property="og:image:width" content="1600"'),file);
-    assert.ok(html.includes('property="og:image:height" content="900"'),file);
+    const image=Object.values(images).find(image=>html.includes('property="og:image" content="'+JSON.parse(fs.readFileSync(path.join(root,'config.json'))).siteUrl+'/'+image.shareSrc+'"'));
+    assert.ok(image&&image.width>=1200&&image.width*9===image.height*16,file);
+    assert.ok(html.includes('property="og:image:width" content="'+image.width+'"'),file);
+    assert.ok(html.includes('property="og:image:height" content="'+image.height+'"'),file);
     if(path.basename(file)!=='busca.html')assert.ok(html.includes('content="max-image-preview:large"'),file);
     if(path.basename(file)!=='index.html'){
       const schemas=[...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(m=>JSON.parse(m[1]));

@@ -1,4 +1,4 @@
-# Pulso Digital — v1.1.0
+# Pulso Digital — v1.2.0
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -6,6 +6,13 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - Para executar via HTTP (Node.js 18+): `npm start`, depois http://localhost:8080.
 - Para regenerar páginas: `npm run build`. Para testar: `npm test`. Não há dependências npm.
 - Hospedagem: publique **somente** a pasta `public/` em hospedagem estática. O servidor incluído é apenas para desenvolvimento local.
+
+## Motor editorial local
+- A CLI está disponível em `npm run editorial -- help`. Contratos, fluxo, validações, imagens, deduplicação e recuperação estão documentados em [editorial/README.md](editorial/README.md).
+- Entradas manuais ficam em `editorial/data/incoming/`; rascunhos, histórico, aprovações e backups permanecem em `editorial/data/`, ignorado pelo Git. Somente fixtures sintéticas e configuração não sensível são versionadas.
+- Publicação exige validação e aprovação explícita do operador, incluindo fatos e direitos da imagem, vinculada ao hash do material aprovado. `publish --dry-run` gera e confere uma cópia temporária sem efeitos persistentes na raiz.
+- Não há integração com IA, notícias ou Trends, aprovação automática, agendamento, auto-commit, push ou deploy pelo motor. O build normal não promove rascunhos. Fixtures são bloqueadas para publicação na raiz real; o ciclo de testes é executado exclusivamente em cópias isoladas.
+- `npm test` mantém as oito verificações anteriores e executa a suíte editorial com os recursos nativos do Node.js em Windows/Linux.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "allowSyntheticPublication": false,
+  "limits": {
+    "inputBytes": 262144,
+    "stateBytes": 8388608,
+    "assetBytes": 5242880,
+    "stagedBytes": 52428800,
+    "title": 180,
+    "summary": 500,
+    "paragraph": 6000,
+    "body": 80000,
+    "sections": 30,
+    "paragraphsPerSection": 30,
+    "sources": 30,
+    "tags": 15,
+    "buildTimeoutMs": 30000
+  },
+  "deduplication": { "titleSimilarity": 0.72, "recommendedSources": 2 }
+}
