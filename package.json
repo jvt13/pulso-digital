@@ -1,0 +1,1 @@
+{"name":"pulso-digital","version":"1.0.1","private":true,"type":"module","scripts":{"build":"node src/build.mjs","start":"node src/server.mjs","test":"node --test src/test.mjs"},"engines":{"node":">=18"}}
