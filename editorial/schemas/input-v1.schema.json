@@ -153,6 +153,40 @@
           "minLength": 1,
           "maxLength": 200
         },
+        "claimTaxonomyVersion": {
+          "type": "string",
+          "enum": [
+            "1.1"
+          ]
+        },
+        "traceability": {
+          "type": "object",
+          "properties": {
+            "titleEvidenceIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 30
+            },
+            "summaryEvidenceIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 30
+            }
+          },
+          "required": [
+            "titleEvidenceIds",
+            "summaryEvidenceIds"
+          ],
+          "additionalProperties": false
+        },
         "sources": {
           "type": "array",
           "items": {
@@ -224,10 +258,35 @@
                 "type": "string",
                 "enum": [
                   "confirmed",
+                  "attributed",
                   "expectation",
                   "rumor",
                   "opinion"
                 ]
+              },
+              "nature": {
+                "type": "string",
+                "enum": [
+                  "documented-fact",
+                  "attributed-statement",
+                  "expectation",
+                  "rumor",
+                  "opinion"
+                ]
+              },
+              "attribution": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "evidenceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "maxItems": 30
               },
               "sourceIds": {
                 "type": "array",

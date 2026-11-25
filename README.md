@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.2
+# Pulso Digital — v1.4.3
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -28,6 +28,9 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - Groq é o provedor prioritário configurável; Gemini permanece alternativa sem modelo pré-selecionado. Chamadas reais exigem confirmação explícita da modalidade gratuita e chave apenas no ambiente local ou `.env` ignorado. O mock é exclusivamente sintético e bloqueado para importação real.
 - A homologação 1.4.1 limita cada requisição a 7.000 tokens reservados e mantém intervalo mínimo de 60 segundos entre chamadas, abaixo da referência pública de 8.000 tokens/minuto da Groq Free. O limite real da organização deve ser conferido na conta e nos cabeçalhos de resposta; sem conta Free confirmada não há chamada real.
 - Dossiês, tentativas de IA, rascunhos e imagens preparadas ficam em `newsroom/data/`, ignorado pelo Git. O newsroom não aprova nem publica notícias. O portal e as oito matérias permanecem inalterados.
+- A redação 2.0 usa taxonomia factual aditiva 1.1: fato documentado, declaração atribuída, expectativa, rumor e opinião. Título e resumo exigem evidência própria; fatos numéricos não podem ser classificados como opinião.
+- Evidências guardam até 600 caracteres, papel editorial e indicação de truncamento. O `Editorial Quality Score` determinístico é auxiliar, expõe cobertura/limitações e não certifica fatos nem autoriza publicação.
+- `enrich`, `revise` e `quality` permitem atualizar evidências, revisar um rascunho sem trocar seu ID e consultar o score. Imagens próprias podem ser autorizadas no manifesto, mas elementos de terceiros exigem fundamento específico.
 
 ## Armazenamento criptografado
 - `npm run storage -- help` apresenta checkpoint, verificação, métricas, restauração isolada e gestão de chave. Arquitetura e estratégia de nuvem: [storage/README.md](storage/README.md).

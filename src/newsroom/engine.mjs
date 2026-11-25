@@ -5,11 +5,14 @@ import {Repository as EditorialRepository,atomicWrite,jsonBytes} from '../editor
 import {EditorialEngine} from '../editorial/engine.mjs';
 import {check,file,hash,safeId} from './common.mjs';
 import {candidates} from './selector.mjs';
-import {research,sourceUrls} from './research.mjs';
+import {research,sourceUrls,fetchAllowed,robotsAllows} from './research.mjs';
 import {writeWithBudget} from './writer.mjs';
 import {verifyDraft,editorialInput} from './verifier.mjs';
 import {inspectImage,stageImage} from './images.mjs';
 import {usageSummary} from './budget.mjs';
+import {describeEvidence} from './evidence-quality.mjs';
+import {evaluateEditorialQuality} from './quality.mjs';
+import {extractHtml} from './extractor.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -46,6 +49,75 @@ export class NewsroomEngine {
     const imported=editorialEngine.import(relative);check(imported.state==='draft','IMPORT','Motor editorial não retornou estado draft.');
     record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(input);record.imageStatus=prepared.status;record.history.push({at:this.repo.now(),action:'import',editorialId,imageStatus:prepared.status});this.repo.save(state);
     return {id,status:record.status,editorialId,alreadyImported:false,imageStatus:prepared.status};
+  });}
+  quality(id){const record=this.show(id);check(record.draft&&record.verification,'STATE','Rascunho verificado necessário para qualidade.');return evaluateEditorialQuality(record.draft,record.dossier,record.verification);}
+  async enrichEvidence(id,{reason='Enriquecimento editorial de evidências da fonte oficial.'}={}){return this.repo.withLock(async()=>{
+    const state=this.repo.read(),record=state.topics[id];check(record?.dossier,'EVIDENCE','Dossiê indisponível.');
+    const config=this.repo.config.research,errors=[],additions=[],updatedSources=[],now=this.repo.now();
+    const existingBySource=new Map();
+    for(const item of record.dossier.evidence||[]){
+      const normalized=String(item.excerpt||'').replace(/\s+/g,' ').trim();
+      if(!existingBySource.has(item.sourceId))existingBySource.set(item.sourceId,new Map());
+      existingBySource.get(item.sourceId).set(normalized,item);
+    }
+    for(const source of record.dossier.sources||[]){
+      try{
+        const robotsUrl=new URL('/robots.txt',source.finalUrl).href;
+        const robots=await fetchAllowed(robotsUrl,config,this.dependencies.research||{});
+        check(/text\/plain/i.test(robots.headers['content-type']||''),'ROBOTS','robots.txt indisponível em texto; fonte preservada.');
+        check(robotsAllows(new TextDecoder('utf-8',{fatal:true}).decode(robots.bytes),source.finalUrl),'ROBOTS','robots.txt bloqueia a fonte.');
+        const response=await fetchAllowed(source.finalUrl,config,this.dependencies.research||{});
+        check(/text\/html/i.test(response.headers['content-type']||''),'CONTENT_TYPE','Somente HTML é permitido.');
+        const page=extractHtml(response.bytes,response.finalUrl);
+        updatedSources.push({...source,title:page.title||source.title,finalUrl:page.url,checkedAt:response.checkedAt,publishedAt:page.dateValid||source.publishedAt,contentHash:page.contentHash});
+        state.researchCache=state.researchCache||{};
+        state.researchCache[source.originalUrl]={...page,checkedAt:response.checkedAt,httpStatus:response.status,cacheControl:response.headers['cache-control']||'',originalUrl:source.originalUrl};
+        const known=existingBySource.get(source.id)||new Map();
+        page.excerptDetails.forEach((detail,index)=>{
+          const excerpt=detail.text.replace(/\s+/g,' ').trim();
+          if(known.has(excerpt))return;
+          const item={id:'evid-'+hash([source.id,'enriched',excerpt]).slice(0,20),sourceId:source.id,excerpt,hash:hash(excerpt),classification:'attributed',completeness:detail.complete?'complete':'truncated',truncated:detail.truncated,excerptChars:detail.chars,roles:detail.roles,checkedAt:response.checkedAt,selectionIndex:index};
+          additions.push(item);known.set(excerpt,item);
+        });
+      }catch(error){errors.push({sourceId:source.id,code:error.code||'ENRICH',message:error.message});}
+    }
+    const updatedSourceMap=new Map(updatedSources.map(source=>[source.id,source]));
+    const sources=(record.dossier.sources||[]).map(source=>updatedSourceMap.get(source.id)||source);
+    const evidence=(record.dossier.evidence||[]).map(item=>{const detail=describeEvidence(item.excerpt,300);return {...item,completeness:item.completeness||(detail.complete?'complete':'truncated'),truncated:item.truncated??detail.truncated,excerptChars:item.excerptChars??detail.chars,roles:item.roles?.length?item.roles:detail.roles};});
+    record.dossier={...record.dossier,sources,evidence:[...evidence,...additions],enrichedAt:now,evidenceErrors:errors};
+    record.evidenceRevision={at:now,reason,added:additions.length,sourcesUpdated:updatedSources.length,errors};
+    record.history.push({at:now,action:'evidence-enrich',reason,added:additions.length,sourcesUpdated:updatedSources.length,errors:errors.map(error=>error.code)});
+    this.repo.save(state);
+    return {id,added:additions.length,evidence:record.dossier.evidence.length,sourcesUpdated:updatedSources.length,errors};
+  });}
+  async reviseDraft(id,draft,{reason='Revisão editorial controlada.'}={}){return this.repo.withLock(async()=>{
+    const state=this.repo.read(),record=state.topics[id];
+    check(record?.dossier&&record.draft,'STATE','Rascunho e dossiê são obrigatórios para revisão.');
+    check(record.editorialId&&!record.synthetic,'STATE','Somente rascunho editorial real pode ser revisado.');
+    const verification=verifyDraft(draft,record.dossier);
+    if(!verification.valid){const error=new Error('Revisão bloqueada: '+verification.errors.map(item=>item.code).join(', '));error.code='REVISION_INVALID';error.details=verification.errors;throw error;}
+    const quality=evaluateEditorialQuality(draft,record.dossier,verification);
+    if(quality.blocked){const error=new Error('Revisão bloqueada pela qualidade: '+quality.blockingReasons.join(', '));error.code='QUALITY_BLOCKED';error.details=quality;throw error;}
+    const topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),image=prepared.ready?stageImage(this.repo.root,id,prepared):null;
+    const input=editorialInput(topic,draft,record.dossier,image),editorialId=record.editorialId;
+    const editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
+    check(fs.existsSync(editorialRepo.recordPath(editorialId)),'NOT_FOUND','Registro editorial não encontrado.');
+    const relative=`editorial/data/incoming/${editorialId}-revision-${Date.now()}.json`,target=file(this.repo.root,relative),bytes=jsonBytes(input);
+    atomicWrite(target,bytes);
+    const revised=editorialEngine.revise(editorialId,relative,reason);
+    check(revised.state==='draft','REVISION','Motor editorial não retornou draft.');
+    const previous=record.draft;
+    record.revisions=[...(record.revisions||[]),{at:this.repo.now(),reason,editorialId,previousTitle:previous.title,newTitle:draft.title,previousDraftHash:hash(previous),newDraftHash:hash(draft),qualityScore:quality.score,qualityCoverage:quality.coverage}];
+    record.draft=draft;
+    record.verification=verification;
+    record.quality=quality;
+    record.editorialInputHash=hash(input);
+    record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};
+    record.imageStatus=prepared.status;
+    record.status='imported';
+    record.history.push({at:this.repo.now(),action:'revise',reason,editorialId,qualityScore:quality.score,qualityCoverage:quality.coverage,imageStatus:prepared.status});
+    this.repo.save(state);
+    return {id,status:record.status,editorialId,verification,quality,imageStatus:prepared.status,revisionFile:relative};
   });}
   dryRun({limit=this.repo.config.maxTopicsPerRun}={}){const plan=this.plan({limit}),radar=new RadarRepository(this.repo.root).read();return {dryRun:true,selected:plan.selected.map(c=>{const topic=radar.topics.find(t=>t.id===c.id);return {...c,plannedSources:sourceUrls(topic,[],this.repo.config.research.maxSourcesPerTopic)};}),provider:this.repo.config.provider,model:this.repo.config.models[this.repo.config.provider],limits:{maxTopicsPerRun:this.repo.config.maxTopicsPerRun,maxAiCallsPerTopic:this.repo.config.maxAiCallsPerTopic,maxDailyTokens:this.repo.config.maxDailyTokens,maxMonthlySpendUsd:this.repo.config.maxMonthlySpendUsd},operations:['research','evidence','write','verify','prepare-image','import draft if valid'],persistentChanges:false,externalCalls:false};}
   async run({limit=this.repo.config.maxTopicsPerRun,freeTierConfirmed=false}={}){const plan=this.plan({limit}),results=[];for(const selected of plan.selected){const id=selected.id;try{let r=this.repo.get(id);if(!r?.dossier)r=await this.research(id);if(r.status==='research-insufficient'){results.push({id,status:r.status});continue;}if(['ready-to-write','failed'].includes(r.status))r=await this.write(id,{freeTierConfirmed});if(r.status==='draft-generated')r=await this.verify(id);if(r.status==='review-required'){results.push({id,status:r.status,errors:r.verification?.errors});continue;}if(['image-pending','ready-to-import'].includes(r.status))r=await this.prepareImage(id);r=await this.importDraft(id);results.push(r);}catch(e){results.push({id,status:'failed',code:e.code||'ERROR',message:e.message});}}return {selected:plan.selected.length,results,automaticApproval:false,automaticPublication:false};}

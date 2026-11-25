@@ -2,6 +2,7 @@ import {destination,requestBytes,targetUrl} from '../radar/security.mjs';
 import {retryAfter} from '../radar/collector.mjs';
 import {check,hash} from './common.mjs';
 import {extractHtml} from './extractor.mjs';
+import {describeEvidence} from './evidence-quality.mjs';
 
 export function sourceUrls(topic,extra=[],limit=4){
   const original=topic.signals.map(s=>s.url).filter(Boolean),urls=[...original.slice(0,2),...extra,...original.slice(2)];
@@ -47,7 +48,7 @@ export async function research(topic,config,{extraUrls=[],dependencies={},cache=
       const sourceId='fonte-'+hash(originalUrl).slice(0,16),signal=topic.signals.find(s=>s.url===originalUrl),organization=signal?.organization||new URL(originalUrl).hostname;
       const record={id:sourceId,originalUrl,finalUrl:page.url,organization,title:page.title,publishedAt:page.dateValid,checkedAt:page.checkedAt,type:signal?'primary-organization':'unclassified-manual',httpStatus:page.httpStatus,cached:page===cached,contentHash:page.contentHash,limitations:[signal?'Fonte da própria organização; declarações não verificadas independentemente.':'URL adicional do operador; independência e natureza exigem revisão humana.']};
       sources.push(record);
-      page.excerpts.forEach((excerpt,i)=>evidence.push({id:'evid-'+hash([sourceId,i,excerpt]).slice(0,20),sourceId,excerpt,hash:hash(excerpt),classification:'attributed',checkedAt:record.checkedAt}));
+      page.excerpts.forEach((excerpt,i)=>{const detail=page.excerptDetails?.[i]||describeEvidence(excerpt);evidence.push({id:'evid-'+hash([sourceId,i,excerpt]).slice(0,20),sourceId,excerpt,hash:hash(excerpt),classification:'attributed',completeness:detail.complete?'complete':'truncated',truncated:Boolean(detail.truncated),excerptChars:detail.chars,roles:detail.roles,checkedAt:record.checkedAt});});
     }catch(e){errors.push({url:originalUrl,code:e.code||'RESEARCH',message:e.message});}
   }
   return {schemaVersion:'1.0',topicId:topic.id,topic:topic.topic,category:topic.suggestedCategory,createdAt:new Date().toISOString(),centralEvent:topic.topic,centralEventStatus:'Título de pauta; acontecimento não verificado.',eventDate:null,people:[],organizations:[...new Set(sources.map(s=>s.organization))],confirmed:[],attributed:evidence.map(e=>({evidenceId:e.id,sourceId:e.sourceId})),expectations:[],rumors:[],conflicts:[],missing:['Confirmação factual independente e contexto brasileiro requerem revisão.'],brazilContext:null,angles:[],sources,evidence,errors,insufficient:evidence.length===0||evidence.map(e=>e.excerpt).join(' ').length<config.minEvidenceChars,cache:nextCache};

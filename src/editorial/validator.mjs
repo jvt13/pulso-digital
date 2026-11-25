@@ -3,6 +3,16 @@ import { checkSchema, safeId, hash, ensure, inputBudget } from './schema.mjs';
 import { detectDuplicates, normalize } from './deduplication.mjs';
 import { dimensions } from './image.mjs';
 
+const NATURE_CLASSIFICATION = {
+  'documented-fact': 'confirmed',
+  'attributed-statement': 'attributed',
+  expectation: 'expectation',
+  rumor: 'rumor',
+  opinion: 'opinion',
+};
+const OPINION_CUE = /\b(?:avali|consider|interpret|parece|sugere|pode indicar|relevante|importante|insuficiente|preocupa|para o leitor|significa)\w*/i;
+const FACTUAL_VERB = /\b(?:recebeu|tem|contem|inclui|anunciou|realizou|publicou|registrou|soma|distribu|distribui|lancou|fixou|corrigiu|submeteu|enviou|reportou|informou|apresenta|totaliza)\w*/i;
+
 export function validDate(value, timestamp = false) {
   if (typeof value !== 'string' || !(timestamp ? /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/ : /^\d{4}-\d{2}-\d{2}$/).test(value)) return false;
   const day = value.slice(0, 10), date = new Date(day + 'T12:00:00Z');
@@ -108,7 +118,26 @@ export function validate(repo, input) {
     claimIds.add(claim.id); covered.add(key);
     if ((claim.classification !== 'opinion' && !claim.sourceIds.length) || claim.sourceIds.some(id => !sourceIds.has(id)) || claim.evidence.trim().length < 10) fail('EVIDENCE', '$.article.claims', 'Documente evidência e fontes para a afirmação.');
     if (claim.classification === 'rumor' && !/rumor|nao confirmad|sem confirmacao/.test(normalize(claim.text))) fail('CLAIM_QUALIFIER', '$.article.claims', 'Rumor deve estar identificado no texto.');
-    if (claim.classification === 'expectation' && !/previ|esper|meta|planej|estim|pode|podera/.test(normalize(claim.text))) fail('CLAIM_QUALIFIER', '$.article.claims', 'Expectativa deve estar identificada no texto.');
+    if (claim.classification === 'expectation' && !/previ|preve|esper|meta|planej|estim|pode|podera|deve|devem|futur|a partir de/.test(normalize(claim.text))) fail('CLAIM_QUALIFIER', '$.article.claims', 'Expectativa deve estar identificada no texto.');
+    if (claim.classification === 'attributed' && (typeof claim.attribution !== 'string' || claim.attribution.trim().length < 2)) fail('CLAIM_ATTRIBUTION', '$.article.claims', 'Declaração atribuída exige indicação explícita da fonte.');
+    if (claim.nature) {
+      if (!Object.hasOwn(NATURE_CLASSIFICATION, claim.nature)) fail('CLAIM_NATURE', '$.article.claims', 'Natureza factual desconhecida.');
+      else if (NATURE_CLASSIFICATION[claim.nature] !== claim.classification) fail('CLAIM_CLASSIFICATION', '$.article.claims', 'Classificação incompatível com a natureza factual.');
+    }
+    if (claim.classification === 'opinion' && /\b\d+(?:[.,]\d+)?\b/.test(claim.text) && FACTUAL_VERB.test(normalize(claim.text)) && !OPINION_CUE.test(normalize(claim.text))) fail('CLAIM_CLASSIFICATION', '$.article.claims', 'Fato numérico não pode ser classificado como opinião sem sinal explícito de interpretação.');
+  }
+  const claimEvidenceIds = new Set((a.claims || []).flatMap(claim => claim.evidenceIds || []));
+  if (a.claimTaxonomyVersion === '1.1') {
+    if (!a.traceability) fail('HEADLINE_TRACEABILITY', '$.article.traceability', 'Taxonomia 1.1 exige evidência para título e resumo.');
+    for (const claim of a.claims || []) {
+      if (!claim.nature || !Array.isArray(claim.evidenceIds) || !claim.evidenceIds.length) fail('CLAIM_TAXONOMY', '$.article.claims', 'Claims 1.1 exigem natureza e IDs de evidência.');
+    }
+  }
+  if (a.traceability) {
+    for (const key of ['titleEvidenceIds', 'summaryEvidenceIds']) {
+      const ids = a.traceability[key];
+      if (!Array.isArray(ids) || !ids.length || ids.some(id => !safeId(id) || !claimEvidenceIds.has(id))) fail('HEADLINE_TRACEABILITY', '$.article.traceability', 'Título e resumo devem referenciar evidências usadas nos parágrafos.');
+    }
   }
   (a.sections || []).forEach((s,i) => s.paragraphs.forEach((_,j) => { if (!covered.has(`${i}:${j}`)) fail('EVIDENCE_COVERAGE', '$.article.claims', 'Parágrafo sem rastreabilidade declarada.'); }));
   if (a.eventDate && (!validDate(a.eventDate) || !a.eventLabel || (a.eventDate > today && (!(a.claims || []).some(c => c.classification === 'expectation') || !/prev|meta|planej|estim/i.test(a.eventLabel))))) fail('EVENT_DATE', '$.article.eventDate', 'Data do acontecimento inválida ou futuro sem qualificação de expectativa.');

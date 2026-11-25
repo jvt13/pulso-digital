@@ -12,6 +12,14 @@ export function inspectImage(root,topicId){
   const manifest=readJson(manifestPath);
   for(const field of ['kind','credit','sourceUrl','license','licenseUrl','authorizationBasis','alt','caption'])check(typeof manifest[field]==='string'&&manifest[field].trim(),'IMAGE_MANIFEST',`Campo ${field} ausente.`);
   check(['photograph','illustration'].includes(manifest.kind)&&safeUrl(manifest.sourceUrl)&&safeUrl(manifest.licenseUrl)&&manifest.authorizationBasis.length>=10&&validDate(manifest.checkedAt)&&manifest.checkedAt<=new Date().toISOString().slice(0,10),'IMAGE_AUTHORIZATION','Fundamento ou data de verificação inválidos.');
+  if(manifest.rightsType!==undefined){
+    check(['self-created','official-authorized','licensed','public-domain'].includes(manifest.rightsType),'IMAGE_AUTHORIZATION','Tipo de direitos desconhecido.');
+    if(manifest.rightsType==='self-created'){
+      check(manifest.kind==='illustration'&&/Pulso Digital/i.test(manifest.credit),'IMAGE_AUTHORIZATION','Ilustração própria exige crédito Pulso Digital e tipo illustration.');
+      check(manifest.thirdPartyElements===undefined||(Array.isArray(manifest.thirdPartyElements)&&manifest.thirdPartyElements.length===0),'IMAGE_AUTHORIZATION','Ilustração própria não pode conter elementos de terceiros.');
+      check(/pr[oó]pri|original|autoral/i.test(`${manifest.license} ${manifest.authorizationBasis}`),'IMAGE_AUTHORIZATION','Declare explicitamente a autoria própria da ilustração.');
+    }
+  }
   if(manifest.kind==='illustration')check(/ilustra/i.test(manifest.alt)&&/ilustra/i.test(manifest.caption),'IMAGE_LABEL','Ilustração deve ser identificada.');
   const spec=[['main.webp',1600,900],['small.webp',640,360],['share.jpg',1600,900]],assets=[];
   if(spec.some(([name])=>!fs.existsSync(file(root,base+'/'+name)))){

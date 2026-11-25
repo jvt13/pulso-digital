@@ -4,16 +4,62 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "insufficient": {"type":"boolean"},
-    "reason": {"type":"string"},
-    "title": {"type":"string"},
-    "slug": {"type":"string"},
-    "summary": {"type":"string"},
-    "category": {"type":"string","enum":["tecnologia","ia","games","espaco","tendencias"]},
-    "tags": {"type":"array","items":{"type":"string"}},
-    "sections": {"type":"array","minItems":2,"items":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"paragraphs":{"type":"array","minItems":1,"items":{"type":"string"}}},"required":["title","paragraphs"]}},
-    "claims": {"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"section":{"type":"integer"},"paragraph":{"type":"integer"},"text":{"type":"string"},"classification":{"type":"string","enum":["confirmed","expectation","rumor","opinion"]},"evidenceIds":{"type":"array","items":{"type":"string"}}},"required":["section","paragraph","text","classification","evidenceIds"]}},
-    "imageSuggestion": {"type":"string"}
+    "insufficient": {"type": "boolean"},
+    "reason": {"type": "string"},
+    "title": {"type": "string"},
+    "slug": {"type": "string"},
+    "summary": {"type": "string"},
+    "category": {"type": "string", "enum": ["tecnologia", "ia", "games", "espaco", "tendencias"]},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "claimTaxonomyVersion": {"type": "string", "enum": ["1.1"]},
+    "titleEvidenceIds": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "summaryEvidenceIds": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "sections": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {"type": "string"},
+          "paragraphs": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        },
+        "required": ["title", "paragraphs"]
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "section": {"type": "integer"},
+          "paragraph": {"type": "integer"},
+          "text": {"type": "string"},
+          "classification": {"type": "string", "enum": ["confirmed", "attributed", "expectation", "rumor", "opinion"]},
+          "nature": {"type": "string", "enum": ["documented-fact", "attributed-statement", "expectation", "rumor", "opinion"]},
+          "attribution": {"type": "string"},
+          "evidenceIds": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        },
+        "required": ["section", "paragraph", "text", "classification", "nature", "attribution", "evidenceIds"]
+      }
+    },
+    "imageSuggestion": {"type": "string"}
   },
-  "required": ["insufficient","reason","title","slug","summary","category","tags","sections","claims","imageSuggestion"]
+  "required": [
+    "insufficient",
+    "reason",
+    "title",
+    "slug",
+    "summary",
+    "category",
+    "tags",
+    "claimTaxonomyVersion",
+    "titleEvidenceIds",
+    "summaryEvidenceIds",
+    "sections",
+    "claims",
+    "imageSuggestion"
+  ]
 }
