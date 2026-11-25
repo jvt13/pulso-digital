@@ -1,0 +1,315 @@
+{
+  "vice-city": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de uma cidade litorânea ao pôr do sol, com palmeiras e um carro; não é captura de GTA VI.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/gta-vi-lancamento-vice-city.webp",
+    "smallSrc": "assets/gta-vi-lancamento-vice-city-640.webp",
+    "shareSrc": "assets/gta-vi-lancamento-vice-city-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/gta-vi-lancamento-vice-city.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 40082
+      },
+      "-640.webp": {
+        "path": "assets/gta-vi-lancamento-vice-city-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 15394
+      },
+      "-share.jpg": {
+        "path": "assets/gta-vi-lancamento-vice-city-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 101302
+      }
+    }
+  },
+  "neon-ai": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de um chip cercado de órbitas luminosas, representando inteligência artificial.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/gemini-4-neon-nova-ia-google.webp",
+    "smallSrc": "assets/gemini-4-neon-nova-ia-google-640.webp",
+    "shareSrc": "assets/gemini-4-neon-nova-ia-google-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/gemini-4-neon-nova-ia-google.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 36956
+      },
+      "-640.webp": {
+        "path": "assets/gemini-4-neon-nova-ia-google-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 10696
+      },
+      "-share.jpg": {
+        "path": "assets/gemini-4-neon-nova-ia-google-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 87756
+      }
+    }
+  },
+  "stellar": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de duas estrelas envoltas em material luminoso; não é observação de Bao.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/webb-fusao-estelar-andromeda.webp",
+    "smallSrc": "assets/webb-fusao-estelar-andromeda-640.webp",
+    "shareSrc": "assets/webb-fusao-estelar-andromeda-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/webb-fusao-estelar-andromeda.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 28066
+      },
+      "-640.webp": {
+        "path": "assets/webb-fusao-estelar-andromeda-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 8196
+      },
+      "-share.jpg": {
+        "path": "assets/webb-fusao-estelar-andromeda-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 66962
+      }
+    }
+  },
+  "console": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de um PC compacto para jogos; não é fotografia da Steam Machine.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/steam-machine-pc-sala.webp",
+    "smallSrc": "assets/steam-machine-pc-sala-640.webp",
+    "shareSrc": "assets/steam-machine-pc-sala-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/steam-machine-pc-sala.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 11532
+      },
+      "-640.webp": {
+        "path": "assets/steam-machine-pc-sala-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 3430
+      },
+      "-share.jpg": {
+        "path": "assets/steam-machine-pc-sala-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 47628
+      }
+    }
+  },
+  "moon": {
+    "kind": "photograph",
+    "credit": "NASA",
+    "sourceUrl": "https://www.nasa.gov/mission/artemis-ii/",
+    "originalUrl": "https://images-assets.nasa.gov/image/art001e000255%20FD5/art001e000255%20FD5~orig.jpg",
+    "license": "Uso editorial informativo permitido pelas diretrizes de imagens da NASA; crédito obrigatório, sem endosso.",
+    "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "originalWidth": 4000,
+    "originalHeight": 3000,
+    "alt": "A cápsula Orion com a Lua ao fundo durante a missão Artemis I, em 20 de novembro de 2022.",
+    "caption": "Orion e Lua na Artemis I, em 20/11/2022. Foto de contexto, não é registro da Artemis II. Recorte de enquadramento em 16:9.",
+    "processing": "Recorte superior preservando Orion e Lua e redução de 4000 × 3000 para 1600 × 900; sem ampliação.",
+    "src": "assets/artemis-ii-o-que-vem-depois.webp",
+    "smallSrc": "assets/artemis-ii-o-que-vem-depois-640.webp",
+    "shareSrc": "assets/artemis-ii-o-que-vem-depois-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/artemis-ii-o-que-vem-depois.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 61362
+      },
+      "-640.webp": {
+        "path": "assets/artemis-ii-o-que-vem-depois-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 14966
+      },
+      "-share.jpg": {
+        "path": "assets/artemis-ii-o-que-vem-depois-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 127562
+      }
+    }
+  },
+  "network": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de uma rede de agentes e sistemas conectados.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/agentes-ia-microsoft-ibm-empresas.webp",
+    "smallSrc": "assets/agentes-ia-microsoft-ibm-empresas-640.webp",
+    "shareSrc": "assets/agentes-ia-microsoft-ibm-empresas-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/agentes-ia-microsoft-ibm-empresas.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 18174
+      },
+      "-640.webp": {
+        "path": "assets/agentes-ia-microsoft-ibm-empresas-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 6032
+      },
+      "-share.jpg": {
+        "path": "assets/agentes-ia-microsoft-ibm-empresas-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 65080
+      }
+    }
+  },
+  "deals": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de uma etiqueta de desconto para o guia de compras na Black Friday.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/black-friday-tecnologia-como-comprar.webp",
+    "smallSrc": "assets/black-friday-tecnologia-como-comprar-640.webp",
+    "shareSrc": "assets/black-friday-tecnologia-como-comprar-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/black-friday-tecnologia-como-comprar.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 19488
+      },
+      "-640.webp": {
+        "path": "assets/black-friday-tecnologia-como-comprar-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 6374
+      },
+      "-share.jpg": {
+        "path": "assets/black-friday-tecnologia-como-comprar-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 58005
+      }
+    }
+  },
+  "phone": {
+    "kind": "illustration",
+    "credit": "Arte conceitual do projeto Pulso Digital (src/art.mjs)",
+    "sourceUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "license": "Arte vetorial própria já integrante do projeto; derivação para uso editorial neste portal, sem concessão de licença de terceiros.",
+    "licenseUrl": "https://github.com/jvt13/pulso-digital/blob/f8c5b80/src/art.mjs",
+    "originalWidth": null,
+    "originalHeight": null,
+    "alt": "Ilustração conceitual própria de um celular com interface colorida; não é imagem oficial de um Pixel.",
+    "caption": "Ilustração conceitual própria; não é fotografia, imagem oficial de produto ou registro do acontecimento.",
+    "processing": "Rasterização do SVG vetorial original em 1600 × 900; não houve ampliação de bitmap pequeno.",
+    "src": "assets/pixel-gemini-atualizacao-novembro.webp",
+    "smallSrc": "assets/pixel-gemini-atualizacao-novembro-640.webp",
+    "shareSrc": "assets/pixel-gemini-atualizacao-novembro-share.jpg",
+    "width": 1600,
+    "height": 900,
+    "previewAllowed": true,
+    "checkedAt": "2026-11-25",
+    "files": {
+      ".webp": {
+        "path": "assets/pixel-gemini-atualizacao-novembro.webp",
+        "width": 1600,
+        "height": 900,
+        "bytes": 20752
+      },
+      "-640.webp": {
+        "path": "assets/pixel-gemini-atualizacao-novembro-640.webp",
+        "width": 640,
+        "height": 360,
+        "bytes": 6938
+      },
+      "-share.jpg": {
+        "path": "assets/pixel-gemini-atualizacao-novembro-share.jpg",
+        "width": 1600,
+        "height": 900,
+        "bytes": 44271
+      }
+    }
+  }
+}

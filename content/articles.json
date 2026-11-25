@@ -1,10 +1,493 @@
 [
-{"slug":"gta-vi-lancamento-vice-city","category":"games","title":"GTA VI chegou: o que esperar da nova era de Vice City","summary":"O retorno a Leonida marca uma nova geração da franquia. Entenda as plataformas, o cenário e o que vale conferir antes de jogar.","date":"2026-11-24","eventDate":"2026-11-19","image":"vice-city","tags":["GTA VI","Rockstar Games","PS5","Xbox"],"featured":true,"spotlight":true,"sections":[{"title":"O retorno a Vice City","paragraphs":["A Rockstar Games confirmou a chegada de Grand Theft Auto VI em 19 de novembro de 2026. O jogo retorna a Vice City, cidade fictícia localizada no estado de Leonida, e apresenta uma nova etapa para a série de mundo aberto.","A escala de um lançamento como esse vai além do jogo: ela mobiliza criadores de conteúdo, comunidades de fãs e o mercado de consoles. Para quem acompanha a franquia, a mudança de cenário é um dos elementos centrais desta nova fase."]},{"title":"Em quais plataformas jogar?","paragraphs":["A comunicação oficial do lançamento indica PlayStation 5 e Xbox Series X|S. Não é seguro assumir uma data de chegada ao computador sem um anúncio específico da desenvolvedora.","Antes de comprar, confirme a plataforma, a edição e os requisitos de armazenamento diretamente na loja oficial. Preços e disponibilidade podem variar por região."]},{"title":"O que acompanhar daqui em diante","paragraphs":["Atualizações, correções e análises de desempenho são os pontos mais relevantes nas primeiras semanas. Vale separar impressões individuais de testes comparativos e esperar informações oficiais sobre novos recursos.","O Pulso Digital acompanha o tema com foco em informações confirmadas, sem tratar rumores ou imagens conceituais como material oficial do jogo."]}],"sources":[{"name":"Rockstar Games — anúncio de lançamento","url":"https://www.rockstargames.com/newswire/article/39akk424a9oo53/grand-theft-auto-vi-now-available"},{"name":"Rockstar Games — página oficial de GTA VI","url":"https://www.rockstargames.com/VI"}]},
-{"slug":"gemini-4-neon-nova-ia-google","category":"ia","title":"Gemini 4 Neon: o novo modelo de IA do Google em foco","summary":"A expansão da família Gemini coloca novas opções nas mãos de desenvolvedores e usuários de inteligência artificial.","date":"2026-11-24","eventDate":"2026-11-23","image":"neon-ai","tags":["Google","Gemini","IA generativa","API"],"spotlight":true,"sections":[{"title":"Onde o modelo está chegando","paragraphs":["O anúncio do Google sobre o Gemini 4 Neon, atualizado em 23 de novembro, descreve a distribuição do modelo em diferentes produtos. Entre os canais citados estão a API Gemini, o Google AI Studio e opções para assinantes de planos pagos.","A disponibilidade em cada produto pode variar conforme plano, país e estágio de distribuição. A presença do nome do modelo em um anúncio não garante acesso imediato para todas as contas."]},{"title":"O que interessa aos desenvolvedores","paragraphs":["Uma nova opção de modelo amplia a possibilidade de testar tarefas de programação, classificação de documentos e automação. A escolha deve considerar custo por tarefa, latência, qualidade e confiabilidade, não apenas a posição de um modelo em benchmarks.","Para avaliar um modelo em produção, vale montar uma amostra de tarefas reais, registrar erros e comparar o custo final de cada fluxo com a alternativa já utilizada."]},{"title":"O que ainda precisa ser avaliado","paragraphs":["Resultados independentes, limites de uso e desempenho em português são elementos importantes para uma decisão de adoção. Consulte as condições de acesso e a documentação oficial antes de migrar um projeto."]}],"sources":[{"name":"Google — anúncio do Gemini 4 Neon","url":"https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/"}]},
-{"slug":"webb-fusao-estelar-andromeda","category":"espaco","title":"James Webb ajuda a desvendar uma rara fusão de estrelas","summary":"Observações de diferentes telescópios ajudam cientistas a reconstruir um evento estelar na galáxia de Andrômeda.","date":"2026-11-24","eventDate":"2026-11-18","image":"stellar","tags":["NASA","James Webb","Astronomia","Andrômeda"],"spotlight":true,"sections":[{"title":"Uma investigação cósmica","paragraphs":["Em 18 de novembro, a NASA divulgou uma pesquisa sobre a fusão de um sistema estelar binário conhecido como Bao, em Andrômeda. Observações do telescópio espacial James Webb ajudaram a complementar informações coletadas por outros instrumentos.","A reconstrução de eventos desse tipo exige combinar dados de épocas e comprimentos de onda diferentes. Isso permite acompanhar mudanças que não seriam evidentes em uma única observação."]},{"title":"Por que o infravermelho importa","paragraphs":["O James Webb observa principalmente no infravermelho. Essa região do espectro pode ajudar a investigar material relativamente frio e regiões envolvidas por poeira, complementando observações em luz visível.","A descoberta ilustra por que a colaboração entre observatórios em órbita e instrumentos terrestres é tão importante para a astronomia moderna."]},{"title":"O que a descoberta representa","paragraphs":["Fusões estelares ajudam a compreender a evolução de sistemas duplos e a transformação da matéria no universo. Uma observação de um caso específico, entretanto, não estabelece que todos esses eventos sigam exatamente o mesmo mecanismo."]}],"sources":[{"name":"NASA Science — estudo sobre a fusão estelar","url":"https://science.nasa.gov/missions/webb/nasa-data-clinches-first-of-its-kind-stellar-merger/"},{"name":"NASA — missão James Webb","url":"https://science.nasa.gov/mission/webb/"}]},
-{"slug":"steam-machine-pc-sala","category":"games","title":"Steam Machine: um PC gamer pensado para a sala","summary":"O hardware da Valve aposta no SteamOS e no formato compacto. Veja o que diferencia essa proposta de um console tradicional.","date":"2026-11-23","image":"console","tags":["Valve","SteamOS","PC gamer","Hardware"],"sections":[{"title":"A proposta do equipamento","paragraphs":["A Steam Machine reúne hardware de jogos em um gabinete compacto, com o SteamOS como sistema operacional. A proposta oficial da Valve é aproximar a experiência de uma biblioteca de PC do uso em uma televisão.","Ao contrário de um console com ecossistema fechado, a compatibilidade dos jogos depende de fatores como suporte ao sistema e requisitos de cada título."]},{"title":"Como avaliar a compra","paragraphs":["Compare o equipamento com um computador de desempenho equivalente e com consoles disponíveis na sua região. Considere resolução desejada, periféricos, armazenamento, consumo e preço total.","Jogos que usam determinados sistemas antitrapaça podem apresentar limitações em sistemas Linux. Consulte as informações específicas dos títulos que pretende utilizar."]},{"title":"Disponibilidade no Brasil","paragraphs":["A página oficial deve ser consultada para verificar mercados atendidos e condições de compra. Não pressupomos venda oficial brasileira nem estimamos um preço nacional sem confirmação."]}],"sources":[{"name":"Valve — Steam Machine","url":"https://store.steampowered.com/hardware/steammachine"},{"name":"Valve — família de hardware Steam","url":"https://store.steampowered.com/sale/hardware/"}]},
-{"slug":"artemis-ii-o-que-vem-depois","category":"espaco","title":"Depois da Artemis II, qual é o próximo passo rumo à Lua?","summary":"A missão tripulada de 2026 ajuda a preparar as próximas etapas da exploração lunar. Entenda a diferença entre sobrevoar e pousar.","date":"2026-11-23","image":"moon","tags":["NASA","Artemis","Lua","Exploração espacial"],"sections":[{"title":"Uma etapa de testes","paragraphs":["A missão Artemis II partiu em 1º de abril de 2026 e levou quatro astronautas em uma trajetória ao redor da Lua. O voo tripulado da cápsula Orion terminou com o retorno da equipe à Terra.","O objetivo dessa etapa era testar sistemas e operações com uma tripulação em uma viagem lunar, sem realizar um pouso na superfície."]},{"title":"O caminho para novas missões","paragraphs":["A NASA informou em agosto de 2026 que seu planejamento previa um teste de encontro e acoplamento em órbita terrestre para Artemis III em 2027 e uma etapa de retorno à superfície lunar com Artemis IV em 2028.","Essas datas são metas de planejamento, sujeitas à evolução de testes, veículos e requisitos de segurança. Um programa de exploração espacial não possui a mesma previsibilidade de um lançamento comercial convencional."]},{"title":"Por que voltar à Lua?","paragraphs":["Além da pesquisa científica, missões lunares permitem desenvolver conhecimento sobre operações prolongadas fora da Terra. Esse aprendizado pode contribuir para futuros projetos de exploração de destinos mais distantes."]}],"sources":[{"name":"NASA — Artemis II","url":"https://www.nasa.gov/mission/artemis-ii/"},{"name":"NASA — atualização do programa Artemis","url":"https://www.nasa.gov/news-release/president-honors-nasas-artemis-ii-crew-with-highest-us-space-award/"}]},
-{"slug":"agentes-ia-microsoft-ibm-empresas","category":"tecnologia","title":"Microsoft e IBM ampliam a aposta em agentes de IA nas empresas","summary":"A colaboração anunciada em novembro aponta para sistemas que conectam inteligência artificial a processos corporativos.","date":"2026-11-22","eventDate":"2026-11-10","image":"network","tags":["Microsoft","IBM","Automação","Agentes de IA"],"sections":[{"title":"O anúncio","paragraphs":["Microsoft e IBM anunciaram em 10 de novembro uma iniciativa de plataforma de agentes de inteligência artificial voltada a necessidades específicas de setores empresariais.","Agentes são sistemas que podem combinar modelos de linguagem com ferramentas e fluxos de execução. Sua utilidade depende do acesso adequado a dados, da integração com os processos e das regras que delimitam sua atuação."]},{"title":"O desafio da autonomia","paragraphs":["Em uma empresa, não basta que uma IA gere uma resposta convincente. A execução de ações precisa respeitar permissões, permitir auditoria e prever recuperação diante de erros.","Um projeto piloto pode começar com tarefas de baixo risco, como classificação e elaboração de rascunhos, antes de incluir operações que alterem dados ou tenham impacto financeiro."]},{"title":"Como medir resultados","paragraphs":["Tempo economizado, taxa de correções manuais e custo por operação são indicadores úteis. Compare o processo automatizado com uma linha de base humana e mantenha supervisão nos casos críticos."]}],"sources":[{"name":"Microsoft — anúncio conjunto com IBM","url":"https://news.microsoft.com/source/2026/11/10/ibm-and-microsoft-announce-a-new-ai-agent-platform-designed-for-industry-specific-transformation"}]},
-{"slug":"black-friday-tecnologia-como-comprar","category":"tendencias","title":"Black Friday de tecnologia: como identificar uma oferta de verdade","summary":"Celulares, SSDs e consoles entram no radar de compras. Um guia para comparar preços sem cair em falsas promoções.","date":"2026-11-24","image":"deals","tags":["Black Friday","Compras","Celulares","Preços"],"sections":[{"title":"Comece pelo histórico de preços","paragraphs":["Uma porcentagem de desconto não diz necessariamente quanto dinheiro você está economizando. Compare o preço final com valores registrados nas semanas anteriores, considerando exatamente a mesma versão do produto.","Leve em conta frete, juros, garantias e reputação do vendedor. Um preço baixo com condições de entrega ruins pode resultar em uma compra mais cara no conjunto."]},{"title":"Confira a configuração","paragraphs":["Em celulares, compare capacidade de armazenamento e memória. Em SSDs, confira formato físico e interface. Para consoles, observe se o anúncio inclui acessórios ou jogos e se o produto tem garantia adequada.","Não confunda produtos parecidos com modelos equivalentes. Salvar o código exato do produto antes da promoção facilita a comparação."]},{"title":"Cuidados com golpes","paragraphs":["Evite links desconhecidos recebidos por mensagem, confira o domínio do vendedor e desconfie de pedidos de pagamento fora de plataformas confiáveis. Reserve um orçamento antes de começar a navegar.","O Google divulgou orientações de compras para a Black Friday de 2026; as ferramentas de comparação podem ajudar, mas não substituem a verificação das condições de cada oferta."]}],"sources":[{"name":"Google Brasil — novidades e dicas de compras","url":"https://blog.google/intl/pt-br/novidades/"}]},
-{"slug":"pixel-gemini-atualizacao-novembro","category":"tecnologia","title":"Pixel recebe novidades de IA: o que muda no uso do celular","summary":"A atualização de novembro do Google inclui novas experiências com Gemini e ferramentas para personalização.","date":"2026-11-22","image":"phone","tags":["Android","Google Pixel","Gemini","Celulares"],"sections":[{"title":"O anúncio de novembro","paragraphs":["O Google apresentou uma nova rodada de recursos para a linha Pixel em novembro de 2026. O comunicado inclui experiências de inteligência artificial e opções de personalização de interface.","Atualizações desse tipo podem depender de idioma, região, geração do aparelho e versão dos aplicativos. Nem todos os recursos chegam simultaneamente a todos os usuários."]},{"title":"Como verificar a disponibilidade","paragraphs":["Verifique as atualizações do sistema e dos aplicativos nas configurações do aparelho. Consulte a documentação oficial para identificar quais recursos estão disponíveis no seu modelo.","Para usuários de outros aparelhos Android, o anúncio não significa que todos os recursos exclusivos da linha Pixel serão distribuídos de forma imediata."]},{"title":"Privacidade e utilidade","paragraphs":["Antes de ativar funcionalidades que processam conteúdo pessoal, examine as permissões e as condições de tratamento de dados. A conveniência de um assistente deve ser avaliada junto com o controle que o usuário mantém sobre suas informações."]}],"sources":[{"name":"Google — November Pixel Drop","url":"https://blog.google/products-and-platforms/devices/pixel/november-2026-pixel-drop/"}]}
+  {
+    "slug": "gta-vi-lancamento-vice-city",
+    "category": "games",
+    "title": "GTA VI em Vice City: lançamento, plataformas e o que conferir",
+    "summary": "Rockstar confirma GTA VI disponível para PS5 e Xbox Series X|S. Veja o cenário anunciado e os cuidados antes de escolher uma edição.",
+    "date": "2026-11-24",
+    "eventDate": "2026-11-19",
+    "image": "vice-city",
+    "tags": [
+      "GTA VI",
+      "Rockstar Games",
+      "PS5",
+      "Xbox"
+    ],
+    "featured": true,
+    "spotlight": true,
+    "sections": [
+      {
+        "title": "O que foi confirmado",
+        "paragraphs": [
+          "GTA VI está disponível para PlayStation 5 e Xbox Series X|S, segundo a Rockstar. A página oficial de lançamento informa 19 de novembro de 2026. A história acompanha Jason e Lucia no estado fictício de Leonida, que inclui Vice City.",
+          "Essa confirmação é de lançamento e plataformas. Ela não equivale a uma avaliação independente de qualidade, estabilidade ou desempenho do jogo. O Pulso Digital não realizou testes do título."
+        ]
+      },
+      {
+        "title": "Antes de escolher a edição",
+        "paragraphs": [
+          "Confira na loja oficial se a versão corresponde ao seu console e quais conteúdos acompanham a compra. Compare o valor final e os itens de cada edição; não trate extras promocionais como indispensáveis para jogar.",
+          "A comunicação consultada destaca PS5 e Xbox Series X|S. Ela não sustenta uma data de lançamento para PC; por isso, não atribuímos um prazo à versão de computador."
+        ]
+      },
+      {
+        "title": "Informação oficial e expectativa",
+        "paragraphs": [
+          "Trailers e imagens promocionais ajudam a conhecer o cenário, mas não substituem testes de desempenho. Para decidir uma compra, procure avaliações que expliquem plataforma, versão e método de teste. A imagem deste artigo é uma ilustração conceitual própria, não uma captura do jogo."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Rockstar — GTA VI: Out Now",
+        "url": "https://www.rockstargames.com/VI/out-now",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial",
+        "publishedDate": "2026-11-19"
+      },
+      {
+        "name": "Rockstar — página oficial de GTA VI",
+        "url": "https://www.rockstargames.com/VI",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventLabel": "Lançamento anunciado",
+    "correctionNote": "Lançamento e plataformas reconferidos; texto distingue confirmação oficial de avaliação de desempenho e de expectativa para PC.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "gemini-4-neon-nova-ia-google",
+    "category": "ia",
+    "title": "Gemini 4 Neon: onde o Google está liberando o novo modelo",
+    "summary": "Anúncio de 18 de novembro, atualizado no dia 23, detalha os canais de distribuição do Gemini 4 Neon. Entenda os limites dessa disponibilidade.",
+    "date": "2026-11-24",
+    "eventDate": "2026-11-18",
+    "image": "neon-ai",
+    "tags": [
+      "Google",
+      "Gemini",
+      "IA generativa",
+      "API"
+    ],
+    "spotlight": true,
+    "sections": [
+      {
+        "title": "Anúncio e atualização são datas diferentes",
+        "paragraphs": [
+          "O Google anunciou o Gemini 4 Neon em 18 de novembro de 2026. O texto oficial recebeu uma atualização em 23 de novembro. Assim, o dia 23 é a data de revisão da fonte, não a data original do anúncio.",
+          "Segundo a empresa, a distribuição inclui a API Gemini no Google AI Studio, Gemini for business, Google Antigravity e o aplicativo Gemini, com condições específicas por canal e plano."
+        ]
+      },
+      {
+        "title": "Acesso precisa ser conferido no produto",
+        "paragraphs": [
+          "O anúncio menciona assinantes Pro e Ultra no Antigravity e no aplicativo Gemini. Isso não significa acesso universal em todas as contas ou regiões. Confirme o modelo oferecido no produto e as condições vigentes antes de migrar um projeto.",
+          "A disponibilidade anunciada pelo fornecedor também não comprova, por si só, ganho de produtividade na sua tarefa. Não reproduzimos posições em rankings como garantia de resultado."
+        ]
+      },
+      {
+        "title": "Como avaliar sem depender da propaganda",
+        "paragraphs": [
+          "Compare alternativas com uma amostra de tarefas reais e registre qualidade das respostas, erros, latência e custo por tarefa. Inclua exemplos em português e situações em que a resposta correta é reconhecer a falta de informação. Esta é uma orientação de avaliação, não um teste realizado pelo portal."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Google — anúncio do Gemini 4 Neon",
+        "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventLabel": "Anúncio original",
+    "correctionNote": "Separadas as datas de anúncio e atualização da fonte; canais e restrições de acesso explicitados sem transformar alegações comerciais em resultados independentes.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "webb-fusao-estelar-andromeda",
+    "category": "espaco",
+    "title": "Fusão estelar em Andrômeda: o que o Webb revelou sobre Bao",
+    "summary": "NASA reúne observações para reconstruir a fusão que originou Bao. A divulgação é de novembro de 2026; a erupção observada ocorreu em 2025.",
+    "date": "2026-11-24",
+    "eventDate": "2025-10-17",
+    "image": "stellar",
+    "tags": [
+      "NASA",
+      "James Webb",
+      "Astronomia",
+      "Andrômeda"
+    ],
+    "spotlight": true,
+    "sections": [
+      {
+        "title": "Bao é o resultado de uma fusão",
+        "paragraphs": [
+          "Em 18 de novembro de 2026, a NASA divulgou uma investigação sobre a fusão de duas estrelas em Andrômeda. Bao é o apelido da estrela resultante; o objeto é identificado como AT 2025abao. Não se trata de duas estrelas observadas em colisão naquela data de divulgação.",
+          "A reconstrução indica que uma estrela menos massiva que o Sol mergulhou na envoltória de uma supergigante. O resultado descrito é uma fusão, entre os possíveis desfechos da evolução de uma envoltória comum."
+        ]
+      },
+      {
+        "title": "A sequência observada",
+        "paragraphs": [
+          "A erupção foi detectada pelo Zwicky Transient Facility em 17 de outubro de 2025. O Webb observou o objeto em 24 de dezembro daquele ano. Dados anteriores e de outros observatórios permitiram comparar as etapas do processo.",
+          "As datas de observação, da erupção detectada e da publicação da pesquisa cumprem funções diferentes. Essa distinção evita apresentar uma divulgação científica recente como um acontecimento visto pela primeira vez naquele dia."
+        ]
+      },
+      {
+        "title": "O que a pesquisa permite concluir",
+        "paragraphs": [
+          "O Webb observa principalmente no infravermelho, útil para estudar a poeira e o material ejetado. Segundo a NASA, os dados ajudaram a reconstruir a fusão. Um caso observado não demonstra que todos os sistemas binários terminem da mesma maneira."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA Science — estudo sobre a fusão estelar",
+        "url": "https://science.nasa.gov/missions/webb/nasa-data-clinches-first-of-its-kind-stellar-merger/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      },
+      {
+        "name": "NASA — missão James Webb",
+        "url": "https://science.nasa.gov/mission/webb/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventLabel": "Erupção detectada",
+    "correctionNote": "Corrigida a identificação de Bao como remanescente e separadas a erupção de 2025, a observação do Webb e a divulgação de 2026.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "steam-machine-pc-sala",
+    "category": "games",
+    "title": "Steam Machine: um PC gamer pensado para a sala",
+    "summary": "SteamOS, gabinete compacto e biblioteca de PC na televisão: veja a proposta da Valve e o que verificar sobre compatibilidade antes da compra.",
+    "date": "2026-11-23",
+    "image": "console",
+    "tags": [
+      "Valve",
+      "SteamOS",
+      "PC gamer",
+      "Hardware"
+    ],
+    "sections": [
+      {
+        "title": "Um PC com interface pensada para jogos",
+        "paragraphs": [
+          "A Valve apresenta a Steam Machine como um PC compacto com SteamOS 3, baseado em Arch Linux, e área de trabalho KDE Plasma. A ficha consultada lista processador AMD Zen 4 de seis núcleos e 12 threads, 16 GB de RAM e 8 GB de memória gráfica.",
+          "Há modelos com SSD de 512 GB ou 2 TB e expansão por microSD. Esses dados descrevem a configuração anunciada; não demonstram desempenho igual em todos os jogos. O portal não realizou testes do equipamento."
+        ]
+      },
+      {
+        "title": "Biblioteca não significa compatibilidade automática",
+        "paragraphs": [
+          "A Valve mantém um programa de verificação para indicar como os jogos funcionam na máquina. Consulte a situação dos títulos que você usa, em vez de presumir que toda a biblioteca terá o mesmo comportamento.",
+          "A documentação do Proton explica que sistemas antitrapaça como Easy Anti-Cheat e BattlEye dependem de configuração pelo desenvolvedor do jogo. O suporte à tecnologia não garante suporte de todo título que a utiliza."
+        ]
+      },
+      {
+        "title": "O que comparar antes de comprar",
+        "paragraphs": [
+          "Verifique mercados atendidos, estoque, preço final, garantia e custos de eventual importação diretamente nos canais de venda. Não afirmamos venda oficial no Brasil nem fixamos um preço nacional sem confirmação.",
+          "Compare também armazenamento, conexões e os jogos pretendidos com outras opções de PC. Escolher o equipamento a partir desse conjunto é mais útil do que assumir que o formato compacto o torna equivalente a qualquer console."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Valve — especificações e perguntas da Steam Machine",
+        "url": "https://store.steampowered.com/hardware/steammachine/?l=english",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      },
+      {
+        "name": "Valve — família de hardware Steam",
+        "url": "https://store.steampowered.com/sale/hardware/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      },
+      {
+        "name": "Valve Steamworks — suporte do Proton e antitrapaça",
+        "url": "https://partner.steamgames.com/doc/steamhardware/proton",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "correctionNote": "Acrescentadas especificações da ficha oficial e limites documentados de compatibilidade; preservada a ausência de promessa sobre preço ou venda brasileira.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "artemis-ii-o-que-vem-depois",
+    "category": "espaco",
+    "title": "Depois da Artemis II, qual é o próximo passo rumo à Lua?",
+    "summary": "Artemis II voou de 1º a 10 de abril de 2026, sem pouso lunar. Entenda como o voo se distingue dos próximos testes e das metas para a superfície.",
+    "date": "2026-11-23",
+    "image": "moon",
+    "tags": [
+      "NASA",
+      "Artemis",
+      "Lua",
+      "Exploração espacial"
+    ],
+    "sections": [
+      {
+        "title": "Um voo ao redor da Lua, sem pouso",
+        "paragraphs": [
+          "A Artemis II foi lançada em 1º de abril de 2026 e retornou à Terra em 10 de abril, conforme a página da missão. A Orion levou Reid Wiseman, Victor Glover, Christina Koch e Jeremy Hansen em um voo tripulado ao redor da Lua.",
+          "Esse voo não foi uma missão de pouso. Sua função de testar sistemas e operações com tripulação é diferente da de transportar astronautas até a superfície lunar."
+        ]
+      },
+      {
+        "title": "Próximas etapas são planos, não fatos consumados",
+        "paragraphs": [
+          "Em comunicado de 28 de agosto de 2026, a NASA descreveu um teste de encontro e acoplamento em órbita terrestre para Artemis III em 2027 e um retorno à superfície com Artemis IV em 2028.",
+          "Esses anos são metas anunciadas no comunicado, sujeitas à evolução dos veículos, dos testes e dos requisitos de segurança. Não apresentamos o pouso de Artemis IV como já realizado nem a data como uma garantia."
+        ]
+      },
+      {
+        "title": "Como acompanhar o programa",
+        "paragraphs": [
+          "Ao consultar notícias sobre Artemis, observe qual missão está sendo discutida e se a informação descreve um voo concluído, um teste ou uma previsão. As páginas oficiais de cada missão ajudam a evitar que um sobrevoo seja confundido com um pouso.",
+          "A fotografia que acompanha esta matéria foi feita durante Artemis I, em 2022. É uma imagem de contexto da Orion e da Lua, identificada na legenda; não documenta a viagem da Artemis II."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "NASA — Artemis II",
+        "url": "https://www.nasa.gov/mission/artemis-ii/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      },
+      {
+        "name": "NASA — atualização do programa Artemis",
+        "url": "https://www.nasa.gov/news-release/president-honors-nasas-artemis-ii-crew-with-highest-us-space-award/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventDate": "2026-04-01",
+    "eventLabel": "Lançamento da Artemis II",
+    "correctionNote": "Acrescentados retorno, tripulação e data do comunicado de planejamento; metas futuras diferenciadas de missões concluídas e imagem histórica identificada.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "agentes-ia-microsoft-ibm-empresas",
+    "category": "tecnologia",
+    "title": "Imagine Enterprise: o que Microsoft e IBM anunciam para agentes de IA",
+    "summary": "Parceria anunciada em 10 de novembro propõe integrar agentes a processos empresariais. Objetivos do fornecedor não equivalem a resultados comprovados.",
+    "date": "2026-11-22",
+    "eventDate": "2026-11-10",
+    "image": "network",
+    "tags": [
+      "Microsoft",
+      "IBM",
+      "Automação",
+      "Agentes de IA"
+    ],
+    "sections": [
+      {
+        "title": "O nome e a proposta da plataforma",
+        "paragraphs": [
+          "IBM e Microsoft anunciaram a Imagine Enterprise em 10 de novembro de 2026. O comunicado descreve uma plataforma para construir, executar e governar agentes de IA conectados a processos específicos de setores empresariais.",
+          "As empresas apresentam controles, observabilidade e apoio de engenharia como parte da proposta. Essas são características e objetivos declarados pelos fornecedores, não uma comprovação independente de ganho ou de ausência de riscos."
+        ]
+      },
+      {
+        "title": "Integração exige limites claros",
+        "paragraphs": [
+          "Um agente que usa ferramentas pode atuar sobre dados e sistemas, além de produzir texto. Por isso, ao avaliar uma adoção, identifique quais operações ele poderá executar, quem poderá autorizá-las e como erros serão registrados e corrigidos.",
+          "Começar com classificação e rascunhos pode facilitar a avaliação antes de permitir alterações em dados. Trata-se de uma recomendação de implantação gradual; o portal não implementou nem testou essa plataforma em uma empresa."
+        ]
+      },
+      {
+        "title": "Resultados precisam de uma linha de base",
+        "paragraphs": [
+          "Compare tempo por tarefa, correções manuais e custo por operação com o processo anterior. Inclua testes de permissão e recuperação de erros. Só depois dessa avaliação é possível discutir se o sistema atende ao caso de uso; o anúncio da parceria não substitui essa evidência."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Microsoft — anúncio conjunto com IBM",
+        "url": "https://news.microsoft.com/source/2026/11/10/ibm-and-microsoft-announce-a-new-ai-agent-platform-designed-for-industry-specific-transformation",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventLabel": "Anúncio da parceria",
+    "correctionNote": "Identificada a plataforma Imagine Enterprise e explicitada a diferença entre proposta comercial, recomendação editorial e resultado independente.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "black-friday-tecnologia-como-comprar",
+    "category": "tendencias",
+    "title": "Black Friday de tecnologia: como identificar uma oferta de verdade",
+    "summary": "Celulares, SSDs e consoles entram no radar de compras. Um guia para comparar preços sem cair em falsas promoções.",
+    "date": "2026-11-24",
+    "image": "deals",
+    "tags": [
+      "Black Friday",
+      "Compras",
+      "Celulares",
+      "Preços"
+    ],
+    "sections": [
+      {
+        "title": "Compare o preço final, não só o desconto",
+        "paragraphs": [
+          "Uma porcentagem destacada no anúncio não mostra, sozinha, se a compra ficou mais barata. A Senacon recomenda comparar valores praticados antes da promoção e pesquisar a reputação da loja. O Procon-MT também orienta acompanhar o histórico nas semanas anteriores.",
+          "Some frete, taxas e juros ao preço anunciado. Salve a identificação exata do produto e a oferta consultada: assim você compara o mesmo item e mantém um registro das condições."
+        ]
+      },
+      {
+        "title": "Aplique a comparação aos eletrônicos",
+        "paragraphs": [
+          "Em celulares, confira a versão e o armazenamento. Em SSDs, compare capacidade, formato e interface. Em consoles, verifique os acessórios e jogos incluídos. Modelos visualmente parecidos podem compor ofertas diferentes; este é um roteiro de conferência, não uma indicação de compra de uma marca.",
+          "Antes de pagar, releia o prazo de entrega e o valor no carrinho. Um desconto aparente pode perder a vantagem quando o custo total ou as condições são diferentes."
+        ]
+      },
+      {
+        "title": "Reduza a exposição a golpes",
+        "paragraphs": [
+          "Evite abrir ofertas por links desconhecidos recebidos em mensagens. Acesse os canais oficiais da loja e confira os dados do destinatário antes de pagar por Pix ou boleto, conforme orientação do Procon-MT.",
+          "Defina o que precisa e quanto pode gastar antes de navegar. Substituímos a antiga referência genérica ao blog do Google por orientações de órgãos de defesa do consumidor; ela não comprovava um anúncio específico de dicas de compras em 2026."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Senacon — cuidados com fraudes e comparação de preços",
+        "url": "https://www.gov.br/mj/pt-br/assuntos/noticias/senacon-alerta-consumidores-para-evitar-golpes-na-black-friday",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial",
+        "publishedDate": "2024-11-06"
+      },
+      {
+        "name": "Procon-MT — alerta para golpes na Black Friday",
+        "url": "https://www.cge.mt.gov.br/web/procon/w/procon-mt-alerta-para-golpes-na-black-friday",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial",
+        "publishedDate": "2026-11-09"
+      }
+    ],
+    "correctionNote": "Retirada a alegação de um anúncio de compras do Google em 2026, que não era sustentada pelo link genérico; referências substituídas por Senacon e Procon-MT.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  },
+  {
+    "slug": "pixel-gemini-atualizacao-novembro",
+    "category": "tecnologia",
+    "title": "Pixel Drop de novembro: Gemini Intelligence e os limites de acesso",
+    "summary": "Atualização anunciada em 10 de novembro destaca recursos no Pixel 10 e personalização. A distribuição ocorre por etapas e varia conforme o recurso.",
+    "date": "2026-11-22",
+    "image": "phone",
+    "tags": [
+      "Android",
+      "Google Pixel",
+      "Gemini",
+      "Celulares"
+    ],
+    "sections": [
+      {
+        "title": "O que o anúncio efetivamente diz",
+        "paragraphs": [
+          "O Google anunciou o Pixel Drop de novembro em 10 de novembro de 2026. O comunicado destaca Gemini Intelligence em aparelhos Pixel 10 e informa que a distribuição começa naquela data e continua nas semanas seguintes.",
+          "Entre os exemplos está Rambler, ferramenta de digitação por voz descrita como capaz de remover palavras de preenchimento e organizar o texto. Essa descrição é do fornecedor, não o resultado de um teste do Pulso Digital."
+        ]
+      },
+      {
+        "title": "Nem todo recurso chega a todo aparelho",
+        "paragraphs": [
+          "O comunicado também trata de personalização e de tarefas em múltiplas etapas com Gemini. As condições dependem do recurso: o texto cita expansão dessas tarefas para Japão, Reino Unido e Índia. Isso não comprova que a mesma função esteja liberada no Brasil.",
+          "Não generalize o anúncio do Pixel 10 para qualquer celular Android. Confira modelo compatível, idioma, região, versão do sistema e requisitos do aplicativo nas informações oficiais."
+        ]
+      },
+      {
+        "title": "Atualização e privacidade",
+        "paragraphs": [
+          "Verifique atualizações do sistema e dos aplicativos nas configurações do aparelho. Ao ativar ferramentas que usam conteúdo pessoal ou executam tarefas, leia as permissões e revise as ações propostas.",
+          "A utilidade precisa ser avaliada no seu uso concreto. A matéria informa o que foi anunciado e suas limitações; não promete disponibilidade imediata nem desempenho igual em todos os modelos."
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "name": "Google — November Pixel Drop",
+        "url": "https://blog.google/products-and-platforms/devices/pixel/november-2026-pixel-drop/",
+        "checkedAt": "2026-11-25",
+        "kind": "Fonte oficial"
+      }
+    ],
+    "eventDate": "2026-11-10",
+    "eventLabel": "Início anunciado da distribuição",
+    "correctionNote": "Fixadas a data do anúncio e a referência ao Pixel 10; exemplos atribuídos ao Google e restrições regionais explicitadas, sem presumir disponibilidade brasileira.",
+    "updatedAt": "2026-11-25T00:17:06-04:00",
+    "editorial": {
+      "name": "Pulso Digital",
+      "role": "Edição institucional provisória"
+    },
+    "verification": {
+      "checkedAt": "2026-11-25",
+      "method": "Consulta documental de fontes oficiais com apoio de IA; sem teste de produtos ou cobertura presencial."
+    }
+  }
 ]

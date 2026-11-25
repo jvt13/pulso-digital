@@ -1,4 +1,4 @@
-# Pulso Digital — v1.0.1
+# Pulso Digital — v1.1.0
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -17,9 +17,18 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - O `robots.txt` deste projeto é servido em `/pulso-digital/robots.txt`; regras para todo o host dependem do arquivo na raiz de `jvt13.github.io`. O sitemap está disponível em `/pulso-digital/sitemap.xml`.
 
 ## Configuração antes da publicação
+### Padrão editorial e imagens
+- `content/articles.json` preserva os campos legados (`date`, `eventDate`, `category`, `tags`, `summary`, `image`, `sources`). As revisões acrescentam `updatedAt`, `eventLabel`, `editorial`, `verification` e `correctionNote`. `date` é a publicação original; `updatedAt` só muda quando há revisão efetiva, sem inventar horário para datas históricas. O gerador não atualiza datas de revisão automaticamente.
+- Cada fonte contém URL, identificação e `checkedAt`; `publishedDate` é informado quando confirmado. A identificação é institucional provisória, com apoio de IA explicitado. Não há jornalistas fictícios, testes de produtos ou cobertura presencial atribuídos a pessoas.
+- `content/images.json` registra arquivos locais, texto alternativo, legenda, crédito, origem, autorização e processamento. As sete artes conceituais próprias foram preservadas, com rasterização vetorial em WebP (1600/640 px) e JPEG de compartilhamento (1600 px). A foto da Orion é da Artemis I em 20/11/2022, usada como contexto e identificada como tal, conforme permissão editorial da NASA.
+- Os bitmaps e seus dados de origem são versionados. O build não baixa imagens nem exige ferramentas externas: usa os arquivos locais existentes e continua gerando as artes vetoriais de `src/art.mjs`. Ao substituir uma imagem, confirme a autorização, preserve o original quando permitido e gere variantes sem ampliar bitmaps pequenos, atualizando o registro de dimensões e tamanhos. Ferramentas de conversão usadas na homologação foram temporárias, sem dependências npm permanentes.
+- Metadados incluem Twitter Cards, Open Graph e JPEG correspondente à imagem visível; NewsArticle e breadcrumbs refletem as informações publicadas. Sitemap utiliza a atualização efetiva e RSS inclui categoria, imagem e crédito. A busca permanece `noindex,follow`; permissões das imagens permitem `max-image-preview:large` nas demais páginas.
+- A presença de metadados e imagens grandes não garante indexação ou inclusão no Discover. Lighthouse mede condições de laboratório; resultados e evidências operacionais ficam em `reports/`, fora do Git e do portal.
+
+### Antes da operação comercial
 1. Em `config.json`, defina `siteUrl` (URL HTTPS real, sem barra no fim) e `contactEmail`. Revise identificação do responsável, textos institucionais e privacidade conforme a operação real.
-2. Execute `npm run build`. Isso gera canonical, Open Graph, NewsArticle, RSS e sitemap com a URL verdadeira. Envie o sitemap ao Search Console. As imagens atuais são SVG conceituais; para compartilhamento e Discover, adicione imagens JPEG/WebP licenciadas de alta resolução e ajuste os metadados e o gerador.
-3. Revise as 8 matérias, confirme as fontes e publique conteúdo original adicional. Não há garantia de aprovação do AdSense ou de indexação.
+2. Execute `npm run build`. Isso gera canonical, Open Graph, Twitter Cards, NewsArticle, breadcrumbs, RSS e sitemap com a URL verdadeira. O registro de imagens fornece WebP responsivo e JPEG para compartilhamento, com créditos e fundamento de uso. Uma eventual submissão do sitemap ao Search Console exige tarefa própria; ela não foi realizada nesta entrega.
+3. As oito matérias foram revisadas documentalmente na PD-002. Mantenha a conferência de fontes, datas e condições de uso a cada revisão, registrando alterações relevantes. Não há garantia de indexação ou de inclusão no Discover.
 4. Após aprovação e implementação de privacidade/consentimento conforme aplicável, informe o `client` real (ca-pub-...), os IDs numéricos `home`, `article`, `articleEnd` e altere `enabled` para true. Recompile. Não habilite sem política de privacidade adequada e gestão de consentimento; esta versão NÃO inclui CMP, Analytics ou anúncios ativos. Publique o ads.txt fornecido pela conta AdSense no diretório public.
 
 ## Organização

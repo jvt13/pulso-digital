@@ -24,3 +24,75 @@ test('metadados e URLs de publicação preservam o subdiretório',()=>{
   const rss=fs.readFileSync(path.join(pub,'rss.xml'),'utf8');
   for(const a of data)assert.ok(rss.includes(`<link>${base}/noticias/${a.slug}.html</link>`));
 });
+test('rastreabilidade editorial e datas reais de revisão',()=>{
+  const originalDates={'gta-vi-lancamento-vice-city':'2026-11-24','gemini-4-neon-nova-ia-google':'2026-11-24','webb-fusao-estelar-andromeda':'2026-11-24','steam-machine-pc-sala':'2026-11-23','artemis-ii-o-que-vem-depois':'2026-11-23','agentes-ia-microsoft-ibm-empresas':'2026-11-22','black-friday-tecnologia-como-comprar':'2026-11-24','pixel-gemini-atualizacao-novembro':'2026-11-22'};
+  assert.deepEqual(data.map(a=>a.slug).sort(),Object.keys(originalDates).sort());
+  for(const a of data){
+    assert.equal(a.date,originalDates[a.slug]);
+    assert.ok(Number.isFinite(Date.parse(a.updatedAt))&&a.updatedAt>=a.date);
+    assert.equal(a.editorial.name,'Pulso Digital');
+    assert.equal(a.editorial.role,'Edição institucional provisória');
+    assert.ok(a.summary&&a.tags.length&&a.correctionNote&&a.verification.method);
+    assert.match(a.verification.checkedAt,/^\d{4}-\d{2}-\d{2}$/);
+    for(const source of a.sources){assert.equal(source.checkedAt,a.verification.checkedAt);assert.equal(new URL(source.url).protocol,'https:');}
+    const html=fs.readFileSync(path.join(pub,'noticias',a.slug+'.html'),'utf8');
+    const schema=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+    assert.equal(schema.datePublished,a.date);assert.equal(schema.dateModified,a.updatedAt);
+    assert.equal(schema.author.name,a.editorial.name);assert.equal(schema.author['@type'],'Organization');
+    assert.deepEqual(schema.citation,a.sources.map(s=>s.url));
+    assert.ok(html.includes(`datetime="${a.updatedAt}"`));assert.ok(html.includes(a.correctionNote));
+  }
+});
+
+test('imagens locais com proveniência, formatos e dimensões verificáveis',()=>{
+  const images=JSON.parse(fs.readFileSync(path.join(root,'content/images.json')));
+  for(const a of data){
+    const image=images[a.image];assert.ok(image, a.slug);
+    assert.ok(image.credit&&image.sourceUrl&&image.license&&image.licenseUrl&&image.alt&&image.caption);
+    assert.ok(image.width>=1200);assert.equal(image.width*9,image.height*16);
+    for(const [suffix,file] of Object.entries(image.files)){
+      const bytes=fs.readFileSync(path.join(pub,file.path));assert.equal(bytes.length,file.bytes,file.path);
+      if(suffix.endsWith('.webp')){assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.equal(bytes.toString('ascii',8,12),'WEBP');}
+      else assert.equal(bytes.readUInt16BE(0),0xffd8);
+    }
+    if(image.kind==='illustration')assert.ok(image.caption.includes('Ilustração'));
+    const html=fs.readFileSync(path.join(pub,'noticias',a.slug+'.html'),'utf8');
+    assert.ok(html.includes(image.src)&&html.includes(image.smallSrc)&&html.includes(image.shareSrc));
+  }
+});
+
+test('Twitter, Open Graph, breadcrumbs, preview e concordância',()=>{
+  const images=JSON.parse(fs.readFileSync(path.join(root,'content/images.json')));
+  const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(x=>x.isDirectory()?walk(path.join(d,x.name)):[path.join(d,x.name)]);
+  for(const file of walk(pub).filter(f=>f.endsWith('.html'))){
+    const html=fs.readFileSync(file,'utf8');
+    assert.ok(html.includes('name="twitter:card" content="summary_large_image"'),file);
+    assert.ok(html.includes('property="og:image:width" content="1600"'),file);
+    assert.ok(html.includes('property="og:image:height" content="900"'),file);
+    if(path.basename(file)!=='busca.html')assert.ok(html.includes('content="max-image-preview:large"'),file);
+    if(path.basename(file)!=='index.html'){
+      const schemas=[...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(m=>JSON.parse(m[1]));
+      const crumbs=schemas.find(s=>s['@type']==='BreadcrumbList');assert.ok(crumbs,file);
+      assert.deepEqual(crumbs.itemListElement.map(x=>x.position),crumbs.itemListElement.map((_,i)=>i+1));
+      assert.ok(html.includes('aria-label="Trilha de navegação"'),file);
+    }
+    assert.ok(!html.includes('1 matérias'),file);
+  }
+  for(const a of data){
+    const html=fs.readFileSync(path.join(pub,'noticias',a.slug+'.html'),'utf8');
+    const encodedAlt=images[a.image].alt.replaceAll('&','&amp;').replaceAll('"','&quot;');
+    assert.ok(html.includes(`property="og:image:alt" content="${encodedAlt}"`));
+    assert.ok(html.includes(`name="twitter:image:alt" content="${encodedAlt}"`));
+  }
+});
+
+test('sitemap lastmod e RSS refletem os registros publicados',()=>{
+  const sitemap=fs.readFileSync(path.join(pub,'sitemap.xml'),'utf8'),rss=fs.readFileSync(path.join(pub,'rss.xml'),'utf8');
+  for(const a of data){assert.ok(sitemap.includes(`<lastmod>${a.updatedAt}</lastmod>`));assert.ok(rss.includes(a.slug+'-share.jpg'));}
+  assert.equal((rss.match(/<item>/g)||[]).length,data.length);
+  assert.equal((rss.match(/<media:credit>/g)||[]).length,data.length);
+  assert.ok(rss.includes('<language>pt-BR</language>'));
+  assert.equal((rss.match(/<dc:date>/g)||[]).length,data.length);
+  if(data.every(a=>!a.date.includes('T')))assert.ok(!rss.includes('<pubDate>'),'não inventar horário de publicação quando só o dia é conhecido');
+  assert.ok(!sitemap.includes('busca.html'));
+});
