@@ -1,20 +1,570 @@
 {
   "schemaVersion": "1.0",
-  "network": { "timeoutMs": 15000, "maxResponseBytes": 1048576, "maxRedirects": 3, "concurrency": 2, "retries": 2, "backoffMs": 1000, "maxWaitMs": 30000, "minIntervalMs": 900000, "cacheTtlMs": 900000, "maxStaleMs": 86400000 },
-  "limits": { "xmlDepth": 32, "xmlNodes": 40000, "itemsPerFeed": 100, "fieldChars": 1000, "stateBytes": 33554432, "topics": 2000, "historyPerTopic": 200, "runs": 200 },
+  "network": {
+    "timeoutMs": 15000,
+    "maxResponseBytes": 1048576,
+    "maxRedirects": 3,
+    "concurrency": 2,
+    "retries": 2,
+    "backoffMs": 1000,
+    "maxWaitMs": 30000,
+    "minIntervalMs": 900000,
+    "cacheTtlMs": 900000,
+    "maxStaleMs": 86400000
+  },
+  "limits": {
+    "xmlDepth": 32,
+    "xmlNodes": 40000,
+    "itemsPerFeed": 100,
+    "fieldChars": 1000,
+    "stateBytes": 33554432,
+    "topics": 2000,
+    "historyPerTopic": 200,
+    "runs": 200
+  },
   "retentionDays": 90,
-  "deduplication": { "titleSimilarity": 0.88, "eventWindowHours": 72 },
-  "score": { "weights": { "relevance": 30, "popularity": 25, "recency": 20, "origin": 15, "novelty": 10 }, "high": 80, "medium": 60, "halfLifeHours": 48, "bands": [{ "minimum": 1000000, "value": 1 }, { "minimum": 100000, "value": 0.8 }, { "minimum": 10000, "value": 0.6 }, { "minimum": 1000, "value": 0.4 }, { "minimum": 0, "value": 0.2 }] },
+  "deduplication": {
+    "titleSimilarity": 0.88,
+    "eventWindowHours": 72
+  },
+  "score": {
+    "weights": {
+      "relevance": 30,
+      "popularity": 25,
+      "recency": 20,
+      "origin": 15,
+      "novelty": 10
+    },
+    "high": 80,
+    "medium": 60,
+    "halfLifeHours": 48,
+    "bands": [
+      {
+        "minimum": 1000000,
+        "value": 1
+      },
+      {
+        "minimum": 100000,
+        "value": 0.8
+      },
+      {
+        "minimum": 10000,
+        "value": 0.6
+      },
+      {
+        "minimum": 1000,
+        "value": 0.4
+      },
+      {
+        "minimum": 0,
+        "value": 0.2
+      }
+    ]
+  },
   "classification": {
     "minimum": 2,
-    "offTopic": ["futebol", "soccer", "football", "flamengo", "palmeiras", "celebridade", "celebrity", "bolsonaro", "trump", "eleicao", "election", "horoscopo"],
-    "rules": [
-      { "category": "games", "terms": { "gta": 3, "grand theft auto": 4, "rockstar": 3, "steam deck": 4, "steam machine": 4, "steam": 1, "playstation": 3, "xbox": 3, "nintendo": 3, "videogame": 3, "video game": 3 }, "negative": ["steam engine", "steam turbine"] },
-      { "category": "ia", "terms": { "chatgpt": 4, "openai": 4, "google gemini": 4, "gemini ai": 4, "gemini": 1, "claude ai": 4, "anthropic": 4, "inteligencia artificial": 4, "artificial intelligence": 4, "agentes de ia": 4, "ai agents": 4, "claude": 1, "ai": 1 }, "negative": ["gemini zodiac", "signo de gemeos", "claude monet"] },
-      { "category": "espaco", "terms": { "nasa": 3, "spacex": 3, "artemis": 2, "james webb": 4, "telescope": 2, "telescopio": 2, "astronaut": 2, "astronauta": 2, "spacecraft": 2, "planet": 1, "ciencia espacial": 3 }, "negative": ["artemis fowl"] },
-      { "category": "tecnologia", "terms": { "android": 3, "iphone": 3, "windows": 1, "processor": 3, "processador": 3, "gpu": 3, "gpus": 3, "semiconductor": 3, "semicondutor": 3, "cybersecurity": 3, "ciberseguranca": 3, "google": 1, "microsoft": 1, "apple": 1 }, "negative": ["windows cleaning", "apple pie", "torta de maca"] },
-      { "category": "tendencias", "terms": { "black friday tecnologia": 4, "black friday tech": 4, "digital culture": 3, "cultura digital": 3, "internet trends": 3, "tendencias digitais": 3 }, "negative": [] }
+    "offTopic": [
+      "futebol",
+      "soccer",
+      "football",
+      "flamengo",
+      "palmeiras",
+      "celebridade",
+      "celebrity",
+      "bolsonaro",
+      "trump",
+      "eleicao",
+      "election",
+      "horoscopo"
     ],
-    "aliases": { "ps5": "playstation", "ps6": "playstation", "gta vi": "grand theft auto", "gta 6": "grand theft auto", "ia generativa": "inteligencia artificial", "generative ai": "artificial intelligence" }
+    "rules": [
+      {
+        "category": "games",
+        "terms": {
+          "gta": 3,
+          "grand theft auto": 4,
+          "rockstar": 1,
+          "steam deck": 4,
+          "steam machine": 4,
+          "steam": 1,
+          "playstation": 1,
+          "xbox": 1,
+          "nintendo": 1,
+          "videogame": 3,
+          "video game": 3,
+          "game engine": 4,
+          "godot showcase": 4,
+          "godot": 1
+        },
+        "negative": [
+          "steam engine",
+          "steam turbine"
+        ]
+      },
+      {
+        "category": "ia",
+        "terms": {
+          "chatgpt": 4,
+          "openai": 1,
+          "google gemini": 4,
+          "gemini ai": 4,
+          "gemini": 1,
+          "claude ai": 4,
+          "anthropic": 1,
+          "inteligencia artificial": 4,
+          "artificial intelligence": 4,
+          "agentes de ia": 4,
+          "ai agents": 4,
+          "claude": 1,
+          "ai": 1,
+          "machine learning": 4,
+          "reinforcement learning": 4,
+          "transformer": 2,
+          "transformers": 2,
+          "embeddings": 3,
+          "multimodal": 2
+        },
+        "negative": [
+          "gemini zodiac",
+          "signo de gemeos",
+          "claude monet"
+        ]
+      },
+      {
+        "category": "espaco",
+        "terms": {
+          "nasa": 1,
+          "spacex": 1,
+          "artemis": 2,
+          "james webb": 4,
+          "telescope": 2,
+          "telescopio": 2,
+          "astronaut": 2,
+          "astronauta": 2,
+          "spacecraft": 2,
+          "planet": 1,
+          "ciencia espacial": 3,
+          "spherex": 3,
+          "kilonova": 3,
+          "astronomer": 2,
+          "astronomy": 3,
+          "supernova": 3,
+          "rotorcraft": 3,
+          "dragonfly": 2,
+          "hubble": 3,
+          "mission architecture": 3,
+          "nuclear reactor": 3,
+          "satellite relay": 3,
+          "space communications": 3,
+          "navigation experiment": 3,
+          "planetary landings": 3,
+          "quantum mechanics": 3,
+          "3d maps": 3
+        },
+        "negative": [
+          "artemis fowl"
+        ]
+      },
+      {
+        "category": "tecnologia",
+        "terms": {
+          "android": 3,
+          "iphone": 3,
+          "windows": 1,
+          "processor": 3,
+          "processador": 3,
+          "gpu": 3,
+          "gpus": 3,
+          "semiconductor": 3,
+          "semicondutor": 3,
+          "cybersecurity": 3,
+          "ciberseguranca": 3,
+          "google": 1,
+          "microsoft": 1,
+          "apple": 1,
+          "google search": 4,
+          "google photos": 4,
+          "google flow": 4,
+          "macos": 3,
+          "macbook": 3,
+          "operating system": 3
+        },
+        "negative": [
+          "windows cleaning",
+          "apple pie",
+          "torta de maca"
+        ]
+      },
+      {
+        "category": "tendencias",
+        "terms": {
+          "black friday tecnologia": 4,
+          "black friday tech": 4,
+          "digital culture": 3,
+          "cultura digital": 3,
+          "internet trends": 3,
+          "tendencias digitais": 3
+        },
+        "negative": []
+      }
+    ],
+    "aliases": {
+      "ps5": "playstation",
+      "ps6": "playstation",
+      "gta vi": "grand theft auto",
+      "gta 6": "grand theft auto",
+      "ia generativa": "inteligencia artificial",
+      "generative ai": "artificial intelligence"
+    },
+    "version": "1.1.0",
+    "broadEntities": {
+      "nasa": "espaco",
+      "spacex": "espaco",
+      "openai": "ia",
+      "anthropic": "ia",
+      "google": "tecnologia",
+      "microsoft": "tecnologia",
+      "alibaba": "tecnologia",
+      "nintendo": "games",
+      "rockstar": "games"
+    },
+    "administrative": [
+      "hyperwall schedule",
+      "student contest",
+      "platinum sponsor",
+      "sponsorship",
+      "london home",
+      "office expansion",
+      "headquarters",
+      "cinema",
+      "staff appointment",
+      "recruitment",
+      "annual financial report"
+    ],
+    "administrativeRelevanceCap": 0.25,
+    "contextualRules": [
+      {
+        "id": "gemini-product",
+        "category": "ia",
+        "entities": [
+          "gemini"
+        ],
+        "terms": [
+          "api",
+          "canvas",
+          "model",
+          "models",
+          "modelo",
+          "modelos",
+          "llm",
+          "mac",
+          "neon",
+          "hydrogen",
+          "ai",
+          "builders",
+          "repetitive chores"
+        ],
+        "sourceCategories": [
+          "ia"
+        ],
+        "version": true,
+        "weight": 5
+      },
+      {
+        "id": "llm-evaluation",
+        "category": "ia",
+        "entities": [
+          "llm",
+          "llms"
+        ],
+        "terms": [
+          "reliability",
+          "benchmark",
+          "model",
+          "testing",
+          "test",
+          "evaluation",
+          "confiabilidade",
+          "avaliacao"
+        ],
+        "sourceCategories": [
+          "ia"
+        ],
+        "weight": 5
+      },
+      {
+        "id": "ai-adoption",
+        "category": "ia",
+        "entities": [
+          "ai",
+          "ia"
+        ],
+        "terms": [
+          "teams",
+          "scale",
+          "businesses",
+          "tools",
+          "agents",
+          "apps",
+          "coding",
+          "models",
+          "ferramentas",
+          "empresas"
+        ],
+        "sourceCategories": [
+          "ia"
+        ],
+        "weight": 4
+      },
+      {
+        "id": "claude-product",
+        "category": "ia",
+        "entities": [
+          "claude"
+        ],
+        "terms": [
+          "anthropic",
+          "ai",
+          "model",
+          "models",
+          "code",
+          "haiku",
+          "sonnet",
+          "opus",
+          "mythos",
+          "fable"
+        ],
+        "sourceCategories": [
+          "ia"
+        ],
+        "version": true,
+        "weight": 5
+      },
+      {
+        "id": "webb-science",
+        "category": "espaco",
+        "entities": [
+          "webb"
+        ],
+        "terms": [
+          "telescope",
+          "galaxy",
+          "supernova",
+          "astronomy",
+          "remnant",
+          "telescopio",
+          "galaxia"
+        ],
+        "sourceCategories": [],
+        "weight": 5
+      },
+      {
+        "id": "steam-games",
+        "category": "games",
+        "entities": [
+          "steam"
+        ],
+        "terms": [
+          "game",
+          "games",
+          "jogo",
+          "jogos",
+          "console",
+          "hardware",
+          "release",
+          "launch",
+          "lancamento",
+          "deck",
+          "machine"
+        ],
+        "sourceCategories": [
+          "games"
+        ],
+        "weight": 5
+      },
+      {
+        "id": "apple-device",
+        "category": "tecnologia",
+        "entities": [
+          "apple"
+        ],
+        "terms": [
+          "iphone",
+          "macos",
+          "macbook",
+          "ipad",
+          "device",
+          "dispositivo"
+        ],
+        "sourceCategories": [],
+        "weight": 5
+      },
+      {
+        "id": "gaming-platform",
+        "category": "games",
+        "entities": [
+          "rockstar",
+          "playstation",
+          "xbox",
+          "nintendo",
+          "godot"
+        ],
+        "terms": [
+          "game",
+          "games",
+          "console",
+          "hardware",
+          "release",
+          "launch",
+          "update",
+          "showcase",
+          "snapshot",
+          "beta",
+          "engine",
+          "jogo",
+          "jogos",
+          "lancamento",
+          "atualizacao"
+        ],
+        "sourceCategories": [
+          "games"
+        ],
+        "version": true,
+        "weight": 5
+      },
+      {
+        "id": "model-tools",
+        "category": "ia",
+        "entities": [
+          "model",
+          "models",
+          "inference",
+          "transformers",
+          "fine tuning",
+          "agentic",
+          "speech model",
+          "llama cpp"
+        ],
+        "terms": [
+          "ai",
+          "llm",
+          "benchmark",
+          "training",
+          "agents",
+          "parameters",
+          "multimodal",
+          "open",
+          "local"
+        ],
+        "sourceCategories": [
+          "ia"
+        ],
+        "version": true,
+        "weight": 5
+      }
+    ]
+  },
+  "specificity": {
+    "version": "1.0.0",
+    "minimumWords": 4,
+    "actions": [
+      "introducing",
+      "introduces",
+      "announces",
+      "announced",
+      "reveals",
+      "release",
+      "released",
+      "launch",
+      "launches",
+      "launching",
+      "update",
+      "updates",
+      "new",
+      "gets",
+      "seeing",
+      "catcher",
+      "tackle",
+      "scale",
+      "making",
+      "build",
+      "builders",
+      "testing",
+      "test",
+      "controls",
+      "retrieval",
+      "experiment",
+      "shows",
+      "overview",
+      "view",
+      "seeks",
+      "lock",
+      "lança",
+      "lanca",
+      "anuncia",
+      "revela",
+      "atualizacao",
+      "teste",
+      "supercharging",
+      "advancing",
+      "catch",
+      "harness",
+      "bridges",
+      "showcase"
+    ],
+    "technicalContexts": [
+      "api",
+      "canvas",
+      "model",
+      "models",
+      "llm",
+      "supernova",
+      "spherex",
+      "kilonova",
+      "telescope",
+      "rotorcraft",
+      "astronomy",
+      "game",
+      "games",
+      "hardware",
+      "processor",
+      "gpu",
+      "mac",
+      "agent",
+      "agents",
+      "inference",
+      "benchmark",
+      "galaxy",
+      "galaxies",
+      "transformers",
+      "software",
+      "instrument",
+      "maps",
+      "communications",
+      "navigation",
+      "residual connections",
+      "quantum",
+      "showcase",
+      "beta",
+      "snapshot",
+      "transformer"
+    ]
+  },
+  "editorialScore": {
+    "version": "1.0.0",
+    "weights": {
+      "relevance": 30,
+      "recency": 20,
+      "origin": 15,
+      "novelty": 10
+    },
+    "denominator": 75,
+    "high": 80,
+    "medium": 60,
+    "minHighRelevance": 0.8,
+    "minHighOrigin": 0.8,
+    "minHighCoverage": 100,
+    "maxHighAgeHours": 48,
+    "maxRankingAgeHours": 168
   }
 }

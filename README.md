@@ -1,4 +1,4 @@
-# Pulso Digital — v1.3.0
+# Pulso Digital — v1.3.1
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -16,7 +16,9 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 
 ## Radar privado de pautas
 - `npm run radar -- help` apresenta os comandos de coleta, classificação, Pulso Score, fila e exportação. Configuração, fontes, fórmula e limites: [radar/README.md](radar/README.md).
+- `top --mode trends` exige volume aproximado efetivamente fornecido pelo feed; `top --mode editorial` ordena potencial editorial de acontecimentos específicos sem afirmar demanda de busca. `reclassify --dry-run` mostra a migração das regras antes de `reclassify`. O export legado continua no contrato de pauta 1.0; os novos modos oferecem contrato 1.1. O contrato do motor editorial permanece 1.0.
 - Google Trends BR/US e feeds oficiais complementares produzem candidatos para pesquisa. O radar não redige, aprova, publica ou importa automaticamente pautas no motor editorial.
+- Godot Blog, Google AI e Google Research ampliam os sinais de games e IA. A [revisão de fontes](radar/source-review.md) documenta os endpoints e as decisões de ativação; Microsoft Blog e Xbox Wire permanecem inativos.
 - Dados, cache, fila e históricos ficam em `radar/data/`, ignorado pelo Git. A coleta é manual, sem agendamento. Fixtures sintéticas entram somente nos testes.
 - Única dependência: `sax@1.4.3`, parser XML estrito sem dependências transitivas; lockfile versionado. O build do portal continua usando somente Node.js.
 

@@ -1,9 +1,182 @@
 [
-  { "id": "trends-br", "name": "Google Trends — BR", "type": "google-trends", "url": "https://trends.google.com/trending/rss?geo=BR", "allowedHosts": ["trends.google.com"], "suggestedCategory": null, "language": "pt-BR", "region": "BR", "weight": 0.8, "active": true, "organization": "google", "termsUrl": "https://policies.google.com/terms", "documentationUrl": "https://support.google.com/trends/answer/3076011", "usage": "RSS oferecido pela ferramenta oficial; somente sinais privados, sem republicação de textos/imagens." },
-  { "id": "trends-us", "name": "Google Trends — US", "type": "google-trends", "url": "https://trends.google.com/trending/rss?geo=US", "allowedHosts": ["trends.google.com"], "suggestedCategory": null, "language": "en-US", "region": "US", "weight": 0.8, "active": true, "organization": "google", "termsUrl": "https://policies.google.com/terms", "documentationUrl": "https://support.google.com/trends/answer/3076011", "usage": "Complementar ao BR; volumes não comparados nem somados entre regiões." },
-  { "id": "nasa-news", "name": "NASA — News Releases", "type": "rss", "url": "https://www.nasa.gov/news-release/feed/", "allowedHosts": ["www.nasa.gov"], "suggestedCategory": "espaco", "language": "en-US", "region": "US", "weight": 1, "active": true, "organization": "nasa", "termsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/", "documentationUrl": "https://www.nasa.gov/rss-feeds/", "usage": "Feed oficial disponibilizado pela NASA; leitura de títulos/referências para pesquisa privada, sem reutilização de imagens ou republicação." },
-  { "id": "nasa-technology", "name": "NASA — Technology", "type": "rss", "url": "https://www.nasa.gov/technology/feed/", "allowedHosts": ["www.nasa.gov"], "suggestedCategory": "tecnologia", "language": "en-US", "region": "US", "weight": 1, "active": true, "organization": "nasa", "termsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/", "documentationUrl": "https://www.nasa.gov/rss-feeds/", "usage": "Feed temático oficial; mesma organização de NASA News, sem pressupor independência." },
-  { "id": "google-blog", "name": "Google — The Keyword", "type": "rss", "url": "https://blog.google/rss/", "allowedHosts": ["blog.google"], "suggestedCategory": "tecnologia", "language": "en-US", "region": "US", "weight": 0.9, "active": true, "organization": "google", "termsUrl": "https://policies.google.com/terms", "documentationUrl": "https://blog.google/", "usage": "Feed ligado no blog oficial; sinais e referências privados. Não é licença para copiar artigos ou imagens." },
-  { "id": "microsoft-blog", "name": "Microsoft — Official Blog", "type": "rss", "url": "https://blogs.microsoft.com/feed/", "allowedHosts": ["blogs.microsoft.com"], "suggestedCategory": "tecnologia", "language": "en-US", "region": "US", "weight": 0.9, "active": false, "organization": "microsoft", "termsUrl": "https://www.microsoft.com/en-us/legal/terms-of-use", "documentationUrl": "https://blogs.microsoft.com/", "usage": "HTTP 200 confirmado; inativo por cautela diante da restrição de uso pessoal/não comercial nos termos gerais. Revisar autorização específica antes de ativar." },
-  { "id": "xbox-wire", "name": "Xbox Wire", "type": "rss", "url": "https://news.xbox.com/en-us/feed/", "allowedHosts": ["news.xbox.com"], "suggestedCategory": "games", "language": "en-US", "region": "US", "weight": 0.9, "active": false, "organization": "microsoft", "termsUrl": "https://www.microsoft.com/en-us/legal/terms-of-use", "documentationUrl": "https://news.xbox.com/en-us/", "usage": "HTTP 200 confirmado; inativo até esclarecimento de autorização específica de uso. Não tratado como sinal coletado pelo radar." }
+  {
+    "id": "trends-br",
+    "name": "Google Trends — BR",
+    "type": "google-trends",
+    "url": "https://trends.google.com/trending/rss?geo=BR",
+    "allowedHosts": [
+      "trends.google.com"
+    ],
+    "suggestedCategory": null,
+    "language": "pt-BR",
+    "region": "BR",
+    "weight": 0.8,
+    "active": true,
+    "organization": "google",
+    "termsUrl": "https://policies.google.com/terms",
+    "documentationUrl": "https://support.google.com/trends/answer/3076011",
+    "usage": "RSS oferecido pela ferramenta oficial; somente sinais privados, sem republicação de textos/imagens."
+  },
+  {
+    "id": "trends-us",
+    "name": "Google Trends — US",
+    "type": "google-trends",
+    "url": "https://trends.google.com/trending/rss?geo=US",
+    "allowedHosts": [
+      "trends.google.com"
+    ],
+    "suggestedCategory": null,
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.8,
+    "active": true,
+    "organization": "google",
+    "termsUrl": "https://policies.google.com/terms",
+    "documentationUrl": "https://support.google.com/trends/answer/3076011",
+    "usage": "Complementar ao BR; volumes não comparados nem somados entre regiões."
+  },
+  {
+    "id": "nasa-news",
+    "name": "NASA — News Releases",
+    "type": "rss",
+    "url": "https://www.nasa.gov/news-release/feed/",
+    "allowedHosts": [
+      "www.nasa.gov"
+    ],
+    "suggestedCategory": "espaco",
+    "language": "en-US",
+    "region": "US",
+    "weight": 1,
+    "active": true,
+    "organization": "nasa",
+    "termsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "documentationUrl": "https://www.nasa.gov/rss-feeds/",
+    "usage": "Feed oficial disponibilizado pela NASA; leitura de títulos/referências para pesquisa privada, sem reutilização de imagens ou republicação."
+  },
+  {
+    "id": "nasa-technology",
+    "name": "NASA — Technology",
+    "type": "rss",
+    "url": "https://www.nasa.gov/technology/feed/",
+    "allowedHosts": [
+      "www.nasa.gov"
+    ],
+    "suggestedCategory": "tecnologia",
+    "language": "en-US",
+    "region": "US",
+    "weight": 1,
+    "active": true,
+    "organization": "nasa",
+    "termsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "documentationUrl": "https://www.nasa.gov/rss-feeds/",
+    "usage": "Feed temático oficial; mesma organização de NASA News, sem pressupor independência."
+  },
+  {
+    "id": "google-blog",
+    "name": "Google — The Keyword",
+    "type": "rss",
+    "url": "https://blog.google/rss/",
+    "allowedHosts": [
+      "blog.google"
+    ],
+    "suggestedCategory": "tecnologia",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": true,
+    "organization": "google",
+    "termsUrl": "https://policies.google.com/terms",
+    "documentationUrl": "https://blog.google/",
+    "usage": "Feed ligado no blog oficial; sinais e referências privados. Não é licença para copiar artigos ou imagens."
+  },
+  {
+    "id": "microsoft-blog",
+    "name": "Microsoft — Official Blog",
+    "type": "rss",
+    "url": "https://blogs.microsoft.com/feed/",
+    "allowedHosts": [
+      "blogs.microsoft.com"
+    ],
+    "suggestedCategory": "tecnologia",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": false,
+    "organization": "microsoft",
+    "termsUrl": "https://www.microsoft.com/en-us/legal/terms-of-use",
+    "documentationUrl": "https://blogs.microsoft.com/",
+    "usage": "HTTP 200 confirmado; inativo por cautela diante da restrição de uso pessoal/não comercial nos termos gerais. Revisar autorização específica antes de ativar."
+  },
+  {
+    "id": "xbox-wire",
+    "name": "Xbox Wire",
+    "type": "rss",
+    "url": "https://news.xbox.com/en-us/feed/",
+    "allowedHosts": [
+      "news.xbox.com"
+    ],
+    "suggestedCategory": "games",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": false,
+    "organization": "microsoft",
+    "termsUrl": "https://www.microsoft.com/en-us/legal/terms-of-use",
+    "documentationUrl": "https://news.xbox.com/en-us/",
+    "usage": "HTTP 200 confirmado; inativo até esclarecimento de autorização específica de uso. Não tratado como sinal coletado pelo radar."
+  },
+  {
+    "id": "godot-blog",
+    "name": "Godot Engine — Blog",
+    "type": "rss",
+    "url": "https://godotengine.org/rss.xml",
+    "allowedHosts": [
+      "godotengine.org"
+    ],
+    "suggestedCategory": "games",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": true,
+    "organization": "godot",
+    "termsUrl": "https://github.com/godotengine/godot-website/blob/master/LICENSE.txt",
+    "documentationUrl": "https://godotengine.org/blog/",
+    "usage": "RSS oficial e conteúdo do site aberto com licença MIT no repositório oficial. Apenas títulos/referências privados; sem copiar imagens. Região US é contexto do monitoramento internacional, não local do acontecimento."
+  },
+  {
+    "id": "google-ai",
+    "name": "Google — AI",
+    "type": "rss",
+    "url": "https://blog.google/innovation-and-ai/technology/ai/rss/",
+    "allowedHosts": [
+      "blog.google"
+    ],
+    "suggestedCategory": "ia",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": true,
+    "organization": "google",
+    "termsUrl": "https://policies.google.com/terms",
+    "documentationUrl": "https://blog.google/innovation-and-ai/technology/ai/",
+    "usage": "Feed público oficial da seção AI; títulos/referências privados, sem republicação ou requisições aos artigos/imagens. robots.txt permite o caminho consultado. Mesmo grupo do Google Blog; não pressupõe independência."
+  },
+  {
+    "id": "google-research",
+    "name": "Google Research — Blog",
+    "type": "rss",
+    "url": "https://research.google/blog/rss/",
+    "allowedHosts": [
+      "research.google"
+    ],
+    "suggestedCategory": "ia",
+    "language": "en-US",
+    "region": "US",
+    "weight": 0.9,
+    "active": true,
+    "organization": "google",
+    "termsUrl": "https://policies.google.com/terms",
+    "documentationUrl": "https://research.google/blog/",
+    "usage": "RSS oficial de pesquisa; coleta limitada a metadados de sinais privados, não a artigos integrais. Não certifica os resultados de pesquisas nem concede licença a imagens. Mesmo grupo das outras fontes Google."
+  }
 ]

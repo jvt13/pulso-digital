@@ -1,0 +1,16 @@
+{
+  "description": "Títulos de regressão fornecidos explicitamente na PD-004.1; não são matérias ou coleta operacional. Sinais de teste são sintéticos.",
+  "cases": [
+    {"topic":"Introducing file slicing controls in the Gemini API","category":"ia"},
+    {"topic":"Introducing Tool Retrieval in the Gemini API","category":"ia"},
+    {"topic":"Here are 4 things you didn’t know you could do with Gemini Canvas.","category":"ia"},
+    {"topic":"See what 5 builders are making with Gemini 4 Neon","category":"ia"},
+    {"topic":"See what 6 builders are making with Gemini 4 Hydrogen","category":"ia"},
+    {"topic":"Let Gemini tackle repetitive chores on your Mac","category":"ia"},
+    {"topic":"We’re launching Humanity’s First Exam and a Kaggle hackathon to test LLM reliability.","category":"ia"},
+    {"topic":"Small businesses, big results: How teams scale with AI","category":"ia"},
+    {"topic":"Webb Reveals New Details in Supernova Remnant","category":"espaco"},
+    {"topic":"APOD: 2026 November 25 – SPHEREx Seeing Through Dust","category":"espaco"},
+    {"topic":"Amateur Astronomer? Be a Kilonova Catcher!","category":"espaco"}
+  ]
+}
