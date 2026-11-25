@@ -23,6 +23,7 @@ As migrations em `migrations/` criam:
 - cache de pesquisa, dossiês, fontes e evidências;
 - rascunhos, seções, claims e histórico do newsroom;
 - chamadas de IA, reservas, consumo, erros e limites;
+- revisões semânticas, achados por severidade, avaliações de claims e obsolescência;
 - imagens, assets privados e manifestos;
 - registros e eventos editoriais;
 - publicações, imagens públicas, configurações e erros operacionais.
@@ -90,3 +91,5 @@ As cotas gratuitas do GitHub para Actions privados, LFS e armazenamento de relea
 - A restauração para dentro de um projeto ativo é bloqueada por padrão; ela deve ocorrer em diretório isolado e passar por revisão.
 - O banco é um checkpoint consistente dos JSON, não uma replicação contínua.
 - Não há painel, API REST, agendamento ou publicação autônoma nesta versão.
+
+As revisões Gemini são projetadas na tabela `editorial_reviews`, com views `v_review_summary` e `v_review_severity`. A fonte operacional continua sendo o JSON privado do newsroom.

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {NewsroomRepository} from './repository.mjs';
 import {NewsroomEngine} from './engine.mjs';
+import {ReviewEngine} from './review/engine.mjs';
 import {check} from './common.mjs';
 import {loadLocalEnv} from './env.mjs';
 
@@ -13,6 +14,8 @@ research ID [--url URL] | evidence ID | write ID [--provider groq|gemini]
 verify ID | prepare-image ID | import ID | quality ID
 enrich ID [--reason TEXTO]
 revise ID --file JSON --reason TEXTO
+review ID [--provider gemini] [--dry-run] [--confirm-free-tier]
+review-status ID | review-history ID | review --help
 run [--limit 3] [--dry-run]
 recover --reason "Justificativa"
 Globais: --json, --root DIRETORIO. Para IA real: --confirm-free-tier após confirmar conta gratuita; chave apenas em variável de ambiente.
@@ -36,11 +39,14 @@ const commandOptions={
   enrich:['reason'],
   revise:['file','reason'],
   quality:[],
+  review:['provider','dry-run','confirm-free-tier','help'],
+  'review-status':[],
+  'review-history':[],
   run:['limit','dry-run','confirm-free-tier'],
   recover:['reason'],
 };
-const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality']);
-const booleans=new Set(['json','dry-run','confirm-free-tier']);
+const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','review','review-status','review-history']);
+const booleans=new Set(['json','dry-run','confirm-free-tier','help']);
 const globalValues=new Set(['root','limit','url','provider','reason','file']);
 
 export async function main(argv=process.argv.slice(2)){
@@ -62,7 +68,8 @@ export async function main(argv=process.argv.slice(2)){
     }
     const [cmd='help',id]=args;
     check(Object.hasOwn(commandOptions,cmd),'CLI','Comando desconhecido; execute help.');
-    check(args.length===(needsId.has(cmd)?2:1),'CLI','Comando ou argumentos inválidos; execute help.');
+    const expectsId=needsId.has(cmd)&&!(cmd==='review'&&opts.help);
+    check(args.length===(expectsId?2:1),'CLI','Comando ou argumentos inválidos; execute help.');
     check(Object.keys(opts).every(key=>['root','json',...commandOptions[cmd]].includes(key)),'CLI','Opção não aplicável ao comando.');
     if(cmd==='help'){
       console.log(opts.json?JSON.stringify({ok:true,help}):help);
@@ -70,7 +77,7 @@ export async function main(argv=process.argv.slice(2)){
     }
     const root=opts.root||path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
     loadLocalEnv(root);
-    const repo=new NewsroomRepository(root),engine=new NewsroomEngine(repo);
+    const repo=new NewsroomRepository(root),engine=new NewsroomEngine(repo),reviewEngine=new ReviewEngine(repo);
     let limit=repo.config.maxTopicsPerRun;
     if(opts.limit){limit=Number(opts.limit);check(Number.isInteger(limit)&&limit>0&&limit<=repo.config.maxTopicsPerRun,'LIMIT','Limite inválido.');}
     let result;
@@ -96,6 +103,12 @@ export async function main(argv=process.argv.slice(2)){
         break;
       }
       case 'quality':result=engine.quality(id);break;
+      case 'review':{
+        if(opts.help){result={help:'Use review ID [--provider gemini] [--dry-run] [--confirm-free-tier]. O resultado é privado e vinculado ao hash do conteúdo.'};break;}
+        result=await reviewEngine.review(id,{provider:opts.provider,freeTierConfirmed:!!opts['confirm-free-tier'],dryRun:!!opts['dry-run']});break;
+      }
+      case 'review-status':result=reviewEngine.status(id);break;
+      case 'review-history':result=reviewEngine.history(id);break;
       case 'run':result=opts['dry-run']?engine.dryRun({limit}):await engine.run({limit,freeTierConfirmed:!!opts['confirm-free-tier']});break;
       case 'recover':result=repo.recover(opts.reason);break;
       default:check(false,'CLI','Comando não implementado.');

@@ -94,6 +94,15 @@ export function queryMetrics(db) {
     count(*) AS image_assets,
     coalesce(sum(bytes), 0) AS image_bytes
     FROM image_assets`).get();
+  const hasReviewTable=scalar(db,"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='editorial_reviews'")>0;
+  const reviewSeverity = hasReviewTable?db.prepare(`SELECT
+    count(*) AS reviews,
+    coalesce(sum(stale), 0) AS stale,
+    coalesce(sum(critical_count), 0) AS critical,
+    coalesce(sum(major_count), 0) AS major,
+    coalesce(sum(minor_count), 0) AS minor,
+    coalesce(sum(informational_count), 0) AS informational
+    FROM editorial_reviews`).get():null;
   return {
     snapshotId,
     createdAt,
@@ -117,6 +126,7 @@ export function queryMetrics(db) {
       publications: scalar(db, 'SELECT count(*) FROM publications'),
       publicationImages: scalar(db, 'SELECT count(*) FROM publication_images'),
       configs: scalar(db, 'SELECT count(*) FROM configs'),
+      ...(hasReviewTable?{reviews:Number(reviewSeverity.reviews)}:{}),
       images: scalar(db, 'SELECT count(*) FROM images'),
       imageAssets: Number(imageAssets.image_assets),
       operationalErrors: scalar(db, 'SELECT count(*) FROM operational_errors'),
@@ -126,6 +136,10 @@ export function queryMetrics(db) {
       radarTopics: grouped(db, 'SELECT status AS key, count(*) AS total FROM radar_topics GROUP BY status ORDER BY status'),
       editorialRecords: grouped(db, 'SELECT state AS key, count(*) AS total FROM editorial_records GROUP BY state ORDER BY state'),
       images: grouped(db, 'SELECT status AS key, count(*) AS total FROM images GROUP BY status ORDER BY status'),
+      ...(hasReviewTable?{
+        reviews: grouped(db, 'SELECT status AS key, count(*) AS total FROM editorial_reviews GROUP BY status ORDER BY status'),
+        reviewResults: grouped(db, "SELECT coalesce(effective_result, 'none') AS key, count(*) AS total FROM editorial_reviews GROUP BY coalesce(effective_result, 'none') ORDER BY key"),
+      }:{}),
     },
     ai: {
       calls: Number(ai.calls),
@@ -142,6 +156,16 @@ export function queryMetrics(db) {
       imageAssets: Number(imageAssets.image_assets),
       imageBytes: Number(imageAssets.image_bytes),
     },
+    ...(hasReviewTable?{reviews:{
+      total: Number(reviewSeverity.reviews),
+      stale: Number(reviewSeverity.stale),
+      severity: {
+        critical: Number(reviewSeverity.critical),
+        major: Number(reviewSeverity.major),
+        minor: Number(reviewSeverity.minor),
+        informational: Number(reviewSeverity.informational),
+      },
+    }}:{}),
   };
 }
 

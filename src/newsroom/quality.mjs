@@ -43,7 +43,9 @@ function rolesUsedByClaims(draft, evidence) {
 }
 
 function component(id, label, weight, score, coverage, note) {
-  return {id, label, weight, score: clamp(score), points: Math.round(weight * clamp(score) / 100), coverage, note};
+  const clamped = clamp(score);
+  const rawPoints = weight * clamped / 100;
+  return {id, label, weight, score: clamped, points: Number(rawPoints.toFixed(2)), rawPoints, coverage, note};
 }
 
 export function evaluateEditorialQuality(draft, dossier, verification) {
@@ -104,12 +106,15 @@ export function evaluateEditorialQuality(draft, dossier, verification) {
   if (!titleEvidence) blockedReasons.push('TITLE_EVIDENCE_INCOMPLETE');
   if (!summaryEvidence) blockedReasons.push('SUMMARY_EVIDENCE_INCOMPLETE');
   if (draft.synthetic) blockedReasons.push('SYNTHETIC_DRAFT');
-  const score = Math.round(components.reduce((total, item) => total + item.points, 0));
+  const weightedMean = components.reduce((total, item) => total + item.rawPoints, 0);
+  const score = Math.round(weightedMean);
   const coverage = Math.round(components.reduce((total, item) => total + item.weight * item.coverage, 0));
   return {
     method: 'editorial-quality-v1-deterministic',
     score: blockedReasons.length ? null : score,
     diagnosticScore: score,
+    weightedMean: Number(weightedMean.toFixed(2)),
+    rounding: 'round-once-after-weighted-sum',
     coverage,
     blocked: blockedReasons.length > 0,
     blockingReasons: blockedReasons,
@@ -125,7 +130,7 @@ export function evaluateEditorialQuality(draft, dossier, verification) {
     future: {
       semanticAdapter: 'gemini',
       status: 'not-implemented',
-      reason: 'Avaliação semântica permanece desativada; Gemini não foi chamado nesta tarefa.',
+      reason: 'A avaliação semântica do score ainda não está implementada; a revisão independente do Gemini é executada separadamente.',
     },
   };
 }

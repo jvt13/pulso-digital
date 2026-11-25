@@ -111,6 +111,26 @@ function fixture(t) {
           manifest: {credit: 'Fixture', sourceUrl: 'https://fixture.example/image', license: 'Fixture license', licenseUrl: 'https://fixture.example/license', alt: 'Fixture', caption: 'Fixture', checkedAt: '2026-11-25'},
         },
         history: [{at, action: 'research'}, {at, action: 'import'}],
+        reviews: [{
+          id: 'review-fixture',
+          status: 'completed',
+          provider: 'gemini',
+          model: 'gemini-fixture',
+          promptVersion: 'review-v1',
+          schemaVersion: '1.0',
+          taskId: 'fixture-task',
+          contentHash: 'fixture-stale-hash',
+          configurationHash: 'fixture-config',
+          modelResult: 'pass',
+          result: 'changes-required',
+          humanReviewRequired: true,
+          findings: [{findingId: 'fixture-finding', severity: 'major', category: 'factual', field: 'body', sectionIndex: 0, paragraphIndex: 0, claimIndex: 0, evidenceIds: ['evid-fixture'], message: 'Fixture finding'}],
+          claimAssessments: [{claimIndex: 0, status: 'unsupported', reason: 'Fixture', evidenceIds: ['evid-fixture']}],
+          limitations: ['Fixture'],
+          severityCounts: {critical: 0, major: 1, minor: 0, informational: 0},
+          usage: {totalTokens: 42, chargedTokens: 42},
+          createdAt: at,
+        }],
       },
     },
     usage: [{
@@ -173,7 +193,7 @@ test('storage: migrations inicializam, repetem sem efeito e detectam alteração
   const fx = fixture(t);
   const dbFile = path.join(fx.dir, 'storage/data/test.sqlcipher');
   const first = openTestDatabase(dbFile);
-  assert.equal(first.pragma('user_version', {simple: true}), 2);
+  assert.equal(first.pragma('user_version', {simple: true}), 3);
   assert.equal(first.prepare('SELECT count(*) AS n FROM sqlite_master WHERE type = ?').get('table').n >= 10, true);
   const second = runMigrations(first, path.join(root, 'storage/migrations'), {now: () => at});
   assert.equal(second.applied.length, 0);
@@ -239,6 +259,9 @@ test('storage: checkpoint criptografado preserva métricas e imagens', t => {
   assert.equal(verified.metrics.counts.newsroomHistory, 2);
   assert.equal(verified.metrics.counts.editorialRecords, 1);
   assert.equal(verified.metrics.counts.editorialEvents, 2);
+  assert.equal(verified.metrics.counts.reviews, 1);
+  assert.equal(verified.metrics.reviews.stale, 1);
+  assert.equal(verified.metrics.reviews.severity.major, 1);
   assert.equal(verified.metrics.ai.chargedTokens, 1234);
   assert.equal(verified.metrics.storage.imageAssets, 2);
   assert.equal(selected.manifest.encryption.plainSqliteHeader, false);
@@ -352,8 +375,8 @@ test('storage: CLI dry-run e status retornam JSON estruturado', t => {
 
 test('storage: migrations descobertas são versionadas e não beta', () => {
   const migrations = discoverMigrations(path.join(root, 'storage/migrations'));
-  assert.equal(migrations.length, 2);
-  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2]);
+  assert.equal(migrations.length, 3);
+  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3]);
 });
 
 test('storage: banco privado não entra em public e storage/data é ignorado', t => {

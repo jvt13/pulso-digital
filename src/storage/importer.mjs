@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {check, canonicalJson, mediaTypeFor, safeRelativePath, sha256, toPosix} from './common.mjs';
 import {queryMetrics, withTransaction} from './database.mjs';
+import {reviewContentFingerprint} from '../newsroom/review/hash.mjs';
 
 const IMAGE_EXTENSIONS = new Set(['.webp', '.jpg', '.jpeg', '.png', '.svg']);
 const CONFIG_NAMES = new Set(['config.json', 'sources.json', 'package.json']);
@@ -371,6 +372,52 @@ function importPublications(db, articles, images) {
   }
 }
 
+function importReviews(db, state) {
+  const statement=db.prepare(`INSERT INTO editorial_reviews
+    (id, topic_id, sample_id, status, provider, model, prompt_version, schema_version, task_id,
+     content_hash, configuration_hash, model_result, effective_result, human_review_required,
+     findings_count, critical_count, major_count, minor_count, informational_count,
+     findings_json, assessments_json, limitations_json, comparison_json, usage_json, error_json, created_at, stale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const insert=(review,topicId,currentHash)=>{
+    const severityCounts=review.severityCounts||{};
+    statement.run(
+      review.id,
+      topicId,
+      review.sampleId||null,
+      review.status||'unknown',
+      review.provider||null,
+      review.model||null,
+      review.promptVersion||null,
+      review.schemaVersion||null,
+      review.taskId||null,
+      review.contentHash,
+      review.configurationHash,
+      review.modelResult||null,
+      review.result||null,
+      review.humanReviewRequired===false?0:1,
+      review.findings?.length||0,
+      severityCounts.critical||0,
+      severityCounts.major||0,
+      severityCounts.minor||0,
+      severityCounts.informational||0,
+      canonicalJson(review.findings||[]),
+      canonicalJson(review.claimAssessments||[]),
+      canonicalJson(review.limitations||[]),
+      review.comparison?canonicalJson(review.comparison):null,
+      review.usage?canonicalJson(review.usage):null,
+      review.error?canonicalJson(review.error):null,
+      review.createdAt||new Date().toISOString(),
+      topicId&&currentHash&&review.contentHash!==currentHash?1:0,
+    );
+  };
+  for(const [topicId,record] of Object.entries(state.topics||{})){
+    const currentHash=record.draft&&record.dossier?reviewContentFingerprint(record,record.dossier):null;
+    for(const review of record.reviews||[])insert(review,topicId,currentHash);
+  }
+  for(const review of state.reviewSamples||[])insert(review,null,null);
+}
+
 function importImageAssets(db, files) {
   const statement = db.prepare(`INSERT INTO image_assets
     (path, topic_id, scope, name, bytes, sha256, media_type, width, height)
@@ -445,6 +492,7 @@ export function importSnapshot(db, collection, {
       parseJson(byPath.get('content/images.json'), 'content/images.json'),
     );
     importImageAssets(db, collection.files);
+    importReviews(db, parseJson(byPath.get('newsroom/data/state.json'), 'newsroom/data/state.json'));
     const metrics = queryMetrics(db);
     db.prepare('UPDATE import_runs SET status = ?, completed_at = ?, counts_json = ? WHERE fingerprint = ?')
       .run('completed', new Date().toISOString(), canonicalJson(metrics.counts), collection.fingerprint);
