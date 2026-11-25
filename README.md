@@ -1,9 +1,9 @@
-# Pulso Digital — v1.4.1
+# Pulso Digital — v1.4.2
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
 - Para visualizar sem instalar nada, abra `public/index.html` no navegador após extrair o ZIP. Links e busca funcionam localmente.
-- Para executar via HTTP (Node.js 18+): `npm start`, depois http://localhost:8080.
+- Para executar via HTTP (Node.js 24+): `npm start`, depois http://localhost:8080.
 - Para regenerar páginas: `npm run build`. Para testar: `npm test`. Execute antes `npm ci --ignore-scripts` para instalar o parser XML fixado do radar.
 - Hospedagem: publique **somente** a pasta `public/` em hospedagem estática. O servidor incluído é apenas para desenvolvimento local.
 
@@ -28,6 +28,12 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - Groq é o provedor prioritário configurável; Gemini permanece alternativa sem modelo pré-selecionado. Chamadas reais exigem confirmação explícita da modalidade gratuita e chave apenas no ambiente local ou `.env` ignorado. O mock é exclusivamente sintético e bloqueado para importação real.
 - A homologação 1.4.1 limita cada requisição a 7.000 tokens reservados e mantém intervalo mínimo de 60 segundos entre chamadas, abaixo da referência pública de 8.000 tokens/minuto da Groq Free. O limite real da organização deve ser conferido na conta e nos cabeçalhos de resposta; sem conta Free confirmada não há chamada real.
 - Dossiês, tentativas de IA, rascunhos e imagens preparadas ficam em `newsroom/data/`, ignorado pelo Git. O newsroom não aprova nem publica notícias. O portal e as oito matérias permanecem inalterados.
+
+## Armazenamento criptografado
+- `npm run storage -- help` apresenta checkpoint, verificação, métricas, restauração isolada e gestão de chave. Arquitetura e estratégia de nuvem: [storage/README.md](storage/README.md).
+- SQLCipher (`better-sqlite3-multiple-ciphers@13.2.0`, MIT) mantém checkpoints `storage/data/` criptografados em repouso. Os repositórios JSON continuam sendo a fonte operacional de verdade.
+- A chave `PULSO_STORAGE_KEY` fica apenas no ambiente ou `.env` ignorado. Sem a chave ou backup válido, o snapshot não é recuperável.
+- O storage não substitui os motores atuais, não acessa IA, não aprova, não publica e não inclui `.env`, credenciais ou `.git` no checkpoint.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital

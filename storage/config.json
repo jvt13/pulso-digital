@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "format": "pulso-digital-encrypted-checkpoint",
+  "formatVersion": "1.0",
+  "database": {
+    "engine": "sqlite",
+    "cipher": "sqlcipher",
+    "legacy": 4,
+    "journalMode": "DELETE",
+    "filename": "snapshot.sqlcipher"
+  },
+  "key": {
+    "env": "PULSO_STORAGE_KEY",
+    "bytes": 32
+  },
+  "paths": {
+    "data": "storage/data",
+    "snapshots": "storage/data/snapshots",
+    "lock": "storage/data/lock"
+  },
+  "sources": {
+    "directories": [
+      "radar/data",
+      "newsroom/data",
+      "editorial/data"
+    ],
+    "files": [
+      "package.json",
+      "config.json",
+      "radar/config.json",
+      "radar/sources.json",
+      "newsroom/config.json",
+      "editorial/config.json",
+      "content/articles.json",
+      "content/images.json",
+      "storage/config.json"
+    ],
+    "requiredFiles": [
+      "package.json",
+      "radar/data/state.json",
+      "newsroom/data/state.json",
+      "content/articles.json"
+    ],
+    "sourceLockPaths": [
+      "radar/data/lock",
+      "newsroom/data/lock",
+      "editorial/data/lock",
+      "editorial/data/transaction.json"
+    ],
+    "excludeNames": [
+      ".env",
+      ".env.local",
+      ".env.production",
+      "lock",
+      "transaction.json",
+      "node_modules",
+      ".git",
+      "storage",
+      "credentials.json",
+      "secrets.json",
+      ".pulso-key",
+      "id_rsa",
+      "id_ed25519"
+    ],
+    "excludeExtensions": [
+      ".log",
+      ".tmp",
+      ".part",
+      ".sqlite",
+      ".sqlcipher",
+      ".db",
+      ".db-wal",
+      ".db-shm",
+      ".key",
+      ".pem",
+      ".p12",
+      ".pfx"
+    ],
+    "maxFiles": 20000,
+    "maxFileBytes": 16777216,
+    "maxTotalBytes": 134217728
+  },
+  "retention": {
+    "maxSnapshots": 10
+  },
+  "limits": {
+    "manifestBytes": 1048576,
+    "snapshotDbBytes": 268435456
+  }
+}
