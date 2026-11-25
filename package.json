@@ -1,1 +1,19 @@
-{"name":"pulso-digital","version":"1.2.0","private":true,"type":"module","scripts":{"build":"node src/build.mjs","start":"node src/server.mjs","editorial":"node src/editorial/cli.mjs","test":"node --test --test-reporter=tap src/test.mjs tests/editorial/engine.test.mjs"},"engines":{"node":">=18"}}
+{
+  "name": "pulso-digital",
+  "version": "1.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "start": "node src/server.mjs",
+    "editorial": "node src/editorial/cli.mjs",
+    "test": "node --test --test-reporter=tap src/test.mjs tests/editorial/engine.test.mjs tests/radar/radar.test.mjs",
+    "radar": "node src/radar/cli.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "sax": "1.4.3"
+  }
+}

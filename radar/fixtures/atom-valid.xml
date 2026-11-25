@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Fixture sintética Atom</title><entry><id>urn:fixture:atom:1</id><title>NASA telescope — fixture sintética &amp; teste</title><link rel="self" href="https://feed.example/atom"/><link rel="alternate" href="https://feed.example/nasa"/><updated>2026-11-25T10:00:00Z</updated></entry></feed>

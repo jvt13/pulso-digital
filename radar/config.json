@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "network": { "timeoutMs": 15000, "maxResponseBytes": 1048576, "maxRedirects": 3, "concurrency": 2, "retries": 2, "backoffMs": 1000, "maxWaitMs": 30000, "minIntervalMs": 900000, "cacheTtlMs": 900000, "maxStaleMs": 86400000 },
+  "limits": { "xmlDepth": 32, "xmlNodes": 40000, "itemsPerFeed": 100, "fieldChars": 1000, "stateBytes": 33554432, "topics": 2000, "historyPerTopic": 200, "runs": 200 },
+  "retentionDays": 90,
+  "deduplication": { "titleSimilarity": 0.88, "eventWindowHours": 72 },
+  "score": { "weights": { "relevance": 30, "popularity": 25, "recency": 20, "origin": 15, "novelty": 10 }, "high": 80, "medium": 60, "halfLifeHours": 48, "bands": [{ "minimum": 1000000, "value": 1 }, { "minimum": 100000, "value": 0.8 }, { "minimum": 10000, "value": 0.6 }, { "minimum": 1000, "value": 0.4 }, { "minimum": 0, "value": 0.2 }] },
+  "classification": {
+    "minimum": 2,
+    "offTopic": ["futebol", "soccer", "football", "flamengo", "palmeiras", "celebridade", "celebrity", "bolsonaro", "trump", "eleicao", "election", "horoscopo"],
+    "rules": [
+      { "category": "games", "terms": { "gta": 3, "grand theft auto": 4, "rockstar": 3, "steam deck": 4, "steam machine": 4, "steam": 1, "playstation": 3, "xbox": 3, "nintendo": 3, "videogame": 3, "video game": 3 }, "negative": ["steam engine", "steam turbine"] },
+      { "category": "ia", "terms": { "chatgpt": 4, "openai": 4, "google gemini": 4, "gemini ai": 4, "gemini": 1, "claude ai": 4, "anthropic": 4, "inteligencia artificial": 4, "artificial intelligence": 4, "agentes de ia": 4, "ai agents": 4, "claude": 1, "ai": 1 }, "negative": ["gemini zodiac", "signo de gemeos", "claude monet"] },
+      { "category": "espaco", "terms": { "nasa": 3, "spacex": 3, "artemis": 2, "james webb": 4, "telescope": 2, "telescopio": 2, "astronaut": 2, "astronauta": 2, "spacecraft": 2, "planet": 1, "ciencia espacial": 3 }, "negative": ["artemis fowl"] },
+      { "category": "tecnologia", "terms": { "android": 3, "iphone": 3, "windows": 1, "processor": 3, "processador": 3, "gpu": 3, "gpus": 3, "semiconductor": 3, "semicondutor": 3, "cybersecurity": 3, "ciberseguranca": 3, "google": 1, "microsoft": 1, "apple": 1 }, "negative": ["windows cleaning", "apple pie", "torta de maca"] },
+      { "category": "tendencias", "terms": { "black friday tecnologia": 4, "black friday tech": 4, "digital culture": 3, "cultura digital": 3, "internet trends": 3, "tendencias digitais": 3 }, "negative": [] }
+    ],
+    "aliases": { "ps5": "playstation", "ps6": "playstation", "gta vi": "grand theft auto", "gta 6": "grand theft auto", "ia generativa": "inteligencia artificial", "generative ai": "artificial intelligence" }
+  }
+}

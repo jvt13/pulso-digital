@@ -8,3 +8,4 @@ node_modules/
 Thumbs.db
 __pycache__/
 editorial/data/
+radar/data/

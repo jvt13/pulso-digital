@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulso-digital:radar:topic:1.0",
+  "title": "Pauta privada para pesquisa — Pulso Digital 1.0",
+  "type": "object",
+  "required": ["schemaVersion", "id", "topic", "normalizedTopic", "suggestedCategory", "relatedTerms", "signals", "sourceReferences", "firstSeenAt", "lastSeenAt", "collectedAt", "score", "scoreBreakdown", "priority", "status", "classificationReason", "classificationSignals", "duplicateReferences", "researchQueries"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^pauta-[a-f0-9]{24}$" },
+    "topic": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "normalizedTopic": { "type": "string", "minLength": 1 },
+    "suggestedCategory": { "enum": ["tecnologia", "ia", "games", "espaco", "tendencias", null] },
+    "relatedTerms": { "type": "array", "items": { "type": "string" } },
+    "signals": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/signal" } },
+    "sourceReferences": { "type": "array", "items": { "type": "object", "required": ["name", "url", "region"], "properties": { "name": { "type": "string" }, "url": { "type": "string", "format": "uri" }, "region": { "type": "string" } }, "additionalProperties": false } },
+    "firstSeenAt": { "type": "string", "format": "date-time" },
+    "lastSeenAt": { "type": "string", "format": "date-time" },
+    "collectedAt": { "type": "string", "format": "date-time" },
+    "score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "scoreBreakdown": { "type": "object", "required": ["components", "coverage", "maximum", "policy"], "properties": { "components": { "type": "object", "required": ["relevance", "popularity", "recency", "origin", "novelty"], "additionalProperties": { "$ref": "#/$defs/component" } }, "coverage": { "type": "number", "minimum": 0, "maximum": 100 }, "maximum": { "const": 100 }, "policy": { "type": "string" } }, "additionalProperties": false },
+    "priority": { "enum": ["alta", "media", "baixa"] },
+    "status": { "enum": ["new", "queued", "deferred", "dismissed"] },
+    "statusReason": { "type": "string" },
+    "classificationReason": { "type": "string" },
+    "classificationSignals": { "type": "object" },
+    "duplicateReferences": { "type": "array", "items": { "type": "object", "required": ["kind", "slug", "title", "reason"] } },
+    "researchQueries": { "type": "array", "items": { "type": "string" } },
+    "history": { "type": "array", "description": "Histórico privado, omitido no export para pesquisa.", "items": { "type": "object", "required": ["at", "action"] } },
+    "purpose": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "component": { "type": "object", "required": ["value", "reason", "weight", "points"], "properties": { "value": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }, "reason": { "type": "string" }, "weight": { "type": "number", "minimum": 0, "maximum": 100 }, "points": { "type": "number", "minimum": 0, "maximum": 100 }, "signals": { "type": "array" } }, "additionalProperties": false },
+    "signal": { "type": "object", "required": ["id", "topic", "normalizedTopic", "provider", "providerType", "organization", "region", "language", "weight", "suggestedCategory", "originalId", "feedUrl", "url", "feedPublishedAt", "approximateTraffic", "relatedTerms", "relatedNews", "collectedAt", "observedAt", "cached", "cacheMode", "metadata"], "properties": {
+      "id": { "type": "string" }, "topic": { "type": "string" }, "normalizedTopic": { "type": "string" }, "provider": { "type": "string" }, "providerType": { "enum": ["rss", "google-trends"] }, "organization": { "type": "string" }, "region": { "type": "string" }, "language": { "type": "string" }, "weight": { "type": "number", "minimum": 0, "maximum": 1 }, "suggestedCategory": { "type": ["string", "null"] }, "originalId": { "type": ["string", "null"] }, "feedUrl": { "type": "string", "format": "uri" }, "url": { "type": ["string", "null"] }, "feedPublishedAt": { "type": ["string", "null"] }, "approximateTraffic": { "type": ["string", "null"] }, "relatedTerms": { "type": "array", "items": { "type": "string" } }, "relatedNews": { "type": "array", "items": { "type": "object" } }, "collectedAt": { "type": "string", "format": "date-time" }, "observedAt": { "type": "string", "format": "date-time" }, "cached": { "type": "boolean" }, "cacheMode": { "enum": ["live", "cache", "revalidated", "stale"] }, "metadata": { "type": "object" }
+    }, "additionalProperties": false }
+  }
+}

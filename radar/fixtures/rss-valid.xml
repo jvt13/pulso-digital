@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Fixture sintética PD-004</title><link>https://feed.example/</link><description>Somente testes, não é notícia real.</description><item><title><![CDATA[OpenAI anuncia agentes de IA — simulação sintética]]></title><link>https://feed.example/noticia?utm_source=teste</link><guid>fixture-ia-1</guid><pubDate>Wed, 25 Nov 2026 10:00:00 GMT</pubDate></item></channel></rss>

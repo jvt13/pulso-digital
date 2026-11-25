@@ -1,18 +1,24 @@
-# Pulso Digital — v1.2.0
+# Pulso Digital — v1.3.0
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
 - Para visualizar sem instalar nada, abra `public/index.html` no navegador após extrair o ZIP. Links e busca funcionam localmente.
 - Para executar via HTTP (Node.js 18+): `npm start`, depois http://localhost:8080.
-- Para regenerar páginas: `npm run build`. Para testar: `npm test`. Não há dependências npm.
+- Para regenerar páginas: `npm run build`. Para testar: `npm test`. Execute antes `npm ci --ignore-scripts` para instalar o parser XML fixado do radar.
 - Hospedagem: publique **somente** a pasta `public/` em hospedagem estática. O servidor incluído é apenas para desenvolvimento local.
 
 ## Motor editorial local
 - A CLI está disponível em `npm run editorial -- help`. Contratos, fluxo, validações, imagens, deduplicação e recuperação estão documentados em [editorial/README.md](editorial/README.md).
 - Entradas manuais ficam em `editorial/data/incoming/`; rascunhos, histórico, aprovações e backups permanecem em `editorial/data/`, ignorado pelo Git. Somente fixtures sintéticas e configuração não sensível são versionadas.
 - Publicação exige validação e aprovação explícita do operador, incluindo fatos e direitos da imagem, vinculada ao hash do material aprovado. `publish --dry-run` gera e confere uma cópia temporária sem efeitos persistentes na raiz.
-- Não há integração com IA, notícias ou Trends, aprovação automática, agendamento, auto-commit, push ou deploy pelo motor. O build normal não promove rascunhos. Fixtures são bloqueadas para publicação na raiz real; o ciclo de testes é executado exclusivamente em cópias isoladas.
+- O motor editorial não consulta IA, notícias ou Trends e não possui aprovação automática, agendamento, auto-commit, push ou deploy. O build normal não promove rascunhos. Fixtures são bloqueadas para publicação na raiz real; o ciclo de testes é executado exclusivamente em cópias isoladas.
 - `npm test` mantém as oito verificações anteriores e executa a suíte editorial com os recursos nativos do Node.js em Windows/Linux.
+
+## Radar privado de pautas
+- `npm run radar -- help` apresenta os comandos de coleta, classificação, Pulso Score, fila e exportação. Configuração, fontes, fórmula e limites: [radar/README.md](radar/README.md).
+- Google Trends BR/US e feeds oficiais complementares produzem candidatos para pesquisa. O radar não redige, aprova, publica ou importa automaticamente pautas no motor editorial.
+- Dados, cache, fila e históricos ficam em `radar/data/`, ignorado pelo Git. A coleta é manual, sem agendamento. Fixtures sintéticas entram somente nos testes.
+- Única dependência: `sax@1.4.3`, parser XML estrito sem dependências transitivas; lockfile versionado. O build do portal continua usando somente Node.js.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital
