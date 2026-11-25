@@ -1,4 +1,4 @@
-# Pulso Digital — v1.3.1
+# Pulso Digital — v1.4.0
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -20,7 +20,13 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - Google Trends BR/US e feeds oficiais complementares produzem candidatos para pesquisa. O radar não redige, aprova, publica ou importa automaticamente pautas no motor editorial.
 - Godot Blog, Google AI e Google Research ampliam os sinais de games e IA. A [revisão de fontes](radar/source-review.md) documenta os endpoints e as decisões de ativação; Microsoft Blog e Xbox Wire permanecem inativos.
 - Dados, cache, fila e históricos ficam em `radar/data/`, ignorado pelo Git. A coleta é manual, sem agendamento. Fixtures sintéticas entram somente nos testes.
-- Única dependência: `sax@1.4.3`, parser XML estrito sem dependências transitivas; lockfile versionado. O build do portal continua usando somente Node.js.
+- O radar usa `sax@1.4.3` para XML estrito. O lockfile fixa também o parser HTML do newsroom; o build do portal continua usando somente Node.js.
+
+## Newsroom privado de pesquisa e redação
+- `npm run newsroom -- help` apresenta seleção, pesquisa, dossiês, redação, verificação, imagem, consumo e importação de **rascunhos privados**. Configuração e limites: [newsroom/README.md](newsroom/README.md).
+- Pesquisa usa referências originais do radar e URLs adicionais explicitamente autorizadas, com HTTPS, hosts permitidos, proteção de DNS, `robots.txt` e extração curta de HTML por `parse5@7.3.0`. Não há busca automática por Google Search, nem reprodução integral de textos.
+- Groq é o provedor prioritário configurável; Gemini permanece alternativa sem modelo pré-selecionado. Chamadas reais exigem confirmação explícita da modalidade gratuita e chave apenas no ambiente local ou `.env` ignorado. O mock é exclusivamente sintético e bloqueado para importação real.
+- Dossiês, tentativas de IA, rascunhos e imagens preparadas ficam em `newsroom/data/`, ignorado pelo Git. O newsroom não aprova nem publica notícias. O portal e as oito matérias permanecem inalterados.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital

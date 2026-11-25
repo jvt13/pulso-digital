@@ -1,0 +1,22 @@
+{
+  "description": "Fixture sintética de teste. Não representa notícia, pesquisa ou resposta real de IA.",
+  "synthetic": true,
+  "value": {
+    "insufficient": false,
+    "reason": "",
+    "title": "Ferramenta sintética de teste local",
+    "slug": "ferramenta-sintetica-teste-local",
+    "summary": "Exemplo fictício para testar o fluxo privado do newsroom.",
+    "category": "ia",
+    "tags": ["teste sintético"],
+    "sections": [
+      {"title":"Cenário sintético","paragraphs":["Esta é uma simulação local sem notícia real."]},
+      {"title":"Limites","paragraphs":["Nenhuma afirmação sobre produto real é apresentada nesta fixture."]}
+    ],
+    "claims": [
+      {"section":0,"paragraph":0,"text":"Esta é uma simulação local sem notícia real.","classification":"confirmed","evidenceIds":["evidencia-sintetica-1"]},
+      {"section":1,"paragraph":0,"text":"Nenhuma afirmação sobre produto real é apresentada nesta fixture.","classification":"confirmed","evidenceIds":["evidencia-sintetica-2"]}
+    ],
+    "imageSuggestion": "Nenhuma imagem é autorizada por esta fixture."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pulso-digital:newsroom:draft:1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "insufficient": {"type":"boolean"},
+    "reason": {"type":"string"},
+    "title": {"type":"string"},
+    "slug": {"type":"string"},
+    "summary": {"type":"string"},
+    "category": {"type":"string","enum":["tecnologia","ia","games","espaco","tendencias"]},
+    "tags": {"type":"array","items":{"type":"string"}},
+    "sections": {"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"title":{"type":"string"},"paragraphs":{"type":"array","items":{"type":"string"}}},"required":["title","paragraphs"]}},
+    "claims": {"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"section":{"type":"integer"},"paragraph":{"type":"integer"},"text":{"type":"string"},"classification":{"type":"string","enum":["confirmed","expectation","rumor","opinion"]},"evidenceIds":{"type":"array","items":{"type":"string"}}},"required":["section","paragraph","text","classification","evidenceIds"]}},
+    "imageSuggestion": {"type":"string"}
+  },
+  "required": ["insufficient","reason","title","slug","summary","category","tags","sections","claims","imageSuggestion"]
+}
