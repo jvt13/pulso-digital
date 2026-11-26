@@ -13,7 +13,7 @@ import {
 } from './common.mjs';
 import {closeQuietly, integrityCheck, openEncryptedDatabase, queryMetrics, withTransaction} from './database.mjs';
 import {loadStorageKey, storageKeyFingerprint} from './env.mjs';
-import {verifyManifestSignature, withManifestSignature} from './integrity.mjs';
+import {encryptedHeaderCheck, verifyManifestSignature, withManifestSignature} from './integrity.mjs';
 import {collectSourceFiles} from './importer.mjs';
 import {projectOperationalDatabase} from './operational-projector.mjs';
 
@@ -372,6 +372,8 @@ export function verifyOperationalDatabase(root, {key = null, config = loadOperat
   const paths = operationalPaths(root, config);
   const stat = fs.lstatSync(paths.database);
   check(stat.isFile() && !stat.isSymbolicLink() && sha256(fs.readFileSync(paths.database)) === marker.databaseSha256, 'TAMPERED', 'Banco operacional diverge do marcador.');
+  const header = encryptedHeaderCheck(paths.database);
+  check(!header.plainSqliteHeader, 'PLAINTEXT_DATABASE', 'Banco operacional não está criptografado.');
   let db;
   try {
     db = openOperational(root, config, loadedKey, {readonly: true});
@@ -384,6 +386,7 @@ export function verifyOperationalDatabase(root, {key = null, config = loadOperat
       authenticated: true,
       integrity,
       marker,
+      encryption: {plainSqliteHeader: false, headerPrefix: header.headerPrefix},
       schemaVersion: Number(db.pragma('user_version', {simple: true})),
       states,
       metrics: queryMetrics(db),
