@@ -22,7 +22,7 @@
     "provider": "gemini",
     "model": "gemini-3.5-flash-lite",
     "promptVersion": "review-v1",
-    "taskId": "PD-006.3.1",
+    "taskId": "PD-006.6",
     "maxCallsPerTask": 2,
     "maxCallsPerTopic": 2,
     "maxTokensPerTask": 15000,

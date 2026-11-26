@@ -20,11 +20,16 @@ export function dueSchedules(state, now = Date.now(), config) {
     if (!schedule.enabled) continue;
     const next = parse(schedule.nextRunAt, now);
     if (next > now) continue;
-    if (now - next > config.maxCatchUpMs) {
-      skipped.push({id: schedule.id, activity: schedule.activity, nextRunAt: schedule.nextRunAt, reason: 'missed-window-coalesced'});
-      continue;
-    }
-    due.push({...schedule, plannedAt: new Date(now).toISOString()});
+    const overdueMs = Math.max(0, now - next);
+    due.push({
+      ...schedule,
+      plannedAt: new Date(now).toISOString(),
+      ...(overdueMs > config.maxCatchUpMs ? {
+        coalesced: true,
+        overdueMs,
+        missedIntervals: Math.max(1, Math.floor(overdueMs / schedule.intervalMs)),
+      } : {}),
+    });
   }
   const future = state.schedules
     .filter((schedule) => schedule.enabled && parse(schedule.nextRunAt, now) > now)

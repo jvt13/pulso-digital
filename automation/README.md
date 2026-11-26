@@ -12,6 +12,7 @@ npm run automation -- status
 npm run automation -- init
 npm run automation -- plan
 npm run automation -- run --once --dry-run
+npm run automation -- run --once --activity selection --max-articles 1
 npm run automation -- pause --reason "Manutenção"
 npm run automation -- resume
 npm run automation -- jobs
@@ -40,10 +41,17 @@ ciclo, sem disparar todos os horários perdidos.
 - Sem marcador operacional válido, o orquestrador bloqueia escritas e não retorna aos JSON
   legados.
 - O lease `automation-orchestrator` impede duas instâncias concorrentes.
+- A lease é renovada por heartbeat e seu token funciona como fencing. Estado não pode ser
+  gravado por proprietário expirado ou substituído.
+- Agendas atrasadas, inclusive após 24 horas, produzem uma única execução consolidada por
+  atividade. O comando `--activity` solicita explicitamente uma atividade sem alterar agendas.
 - A reserva e o consumo continuam no mecanismo do newsroom; o orquestrador não os reinicia.
 - Chamadas de IA só ocorrem com `ai.enabled=true`, confirmação explícita da modalidade
   gratuita e provider autorizado. A configuração padrão deixa a IA desativada.
-- Imagem pendente mantém o rascunho privado bloqueado para publicação.
+- Manifestos oficiais/licenciados continuam preferenciais. Sem manifesto, o pipeline pode
+  gerar uma ilustração própria determinística, com direitos, crédito, hashes e variantes.
+- Imagem pendente, revisão semântica ausente/`changes-required` ou aprovação humana ausente
+  mantêm o rascunho privado bloqueado para publicação.
 - Backups usam o coletor consistente do banco operacional e incluem o estado da automação.
 - `npm run storage -- upgrade` aplica migrations ao banco operacional ativo, com checkpoints
   pré e pós-upgrade. O hash do banco no marcador é uma linha de base; alterações legítimas

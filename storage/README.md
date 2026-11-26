@@ -1,4 +1,4 @@
-# Armazenamento operacional criptografado — contrato 1.4.7
+# Armazenamento operacional criptografado — contrato 1.4.8
 
 A camada `src/storage/` mantém dois artefatos distintos:
 
@@ -66,6 +66,7 @@ npm run storage -- checkpoint --dry-run
 npm run storage -- checkpoint
 npm run storage -- backup
 npm run storage -- metrics --json
+npm run storage -- retention --json
 npm run storage -- inspect
 npm run storage -- restore --dry-run
 npm run storage -- restore --target DIRETORIO
@@ -137,7 +138,11 @@ e os hashes dos registros canônicos.
 
 ## Retenção e VPS
 
-A retenção sugerida é de dez snapshots, sem remoção automática nesta versão. Snapshots devem
+A política de retenção é simulada com limite configurável de dez snapshots; nenhuma remoção
+automática é executada nesta versão. O planejador preserva o snapshot mais recente íntegro, o
+backup citado no marcador operacional e snapshots com erro de integridade. `storage retention`
+lista candidatos sem apagar arquivos. Snapshots protegidos por migration ou operação também
+devem ser informados ao planejador. Snapshots devem
 ser copiados periodicamente para destino externo à VPS, com a chave preservada separadamente.
 Não use cache do GitHub Actions como armazenamento primário; artefatos temporários não têm
 retenção permanente.

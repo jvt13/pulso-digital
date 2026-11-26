@@ -10,6 +10,7 @@ import {
   checkpointPlan,
   createCheckpoint,
   listSnapshots,
+  snapshotRetentionPlan,
   selectSnapshot,
   withStorageLock,
   recoverStorageLock,
@@ -612,4 +613,24 @@ test('storage: upgrade reconhece schema operacional atual', t => {
   assert.equal(plan.needsUpgrade, false);
   const result = upgradeOperational(fx.dir, fx.config, fx.packageJson, key);
   assert.equal(result.alreadyCurrent, true);
+});
+
+test('storage: retenção simulada preserva janela, backup e snapshots inválidos', () => {
+  const items = Array.from({length: 14}, (_, index) => ({
+    id: `snapshot-${String(index).padStart(2, '0')}`,
+    directory: `snapshot-${String(index).padStart(2, '0')}`,
+    createdAt: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+    ...(index === 3 ? {error: 'TAMPERED'} : {}),
+  }));
+  const plan = snapshotRetentionPlan(items, {retention: {maxSnapshots: 5}}, {
+    protectedIds: ['snapshot-02', 'snapshot-03'],
+  });
+  assert.equal(plan.simulation, true);
+  assert.equal(plan.deletionPerformed, false);
+  assert.equal(plan.retainedCount, 7);
+  assert.equal(plan.candidateCount, 7);
+  assert(plan.protectedIds.includes('snapshot-13'));
+  assert(plan.protectedIds.includes('snapshot-02'));
+  assert(plan.retained.some((item) => item.id === 'snapshot-03' && item.reason === 'integrity-error-preserved'));
+  assert(!plan.removalCandidates.some((item) => item.id === 'snapshot-13' || item.id === 'snapshot-03'));
 });

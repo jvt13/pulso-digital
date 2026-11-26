@@ -9,11 +9,13 @@ import {research,sourceUrls,fetchAllowed,robotsAllows} from './research.mjs';
 import {writeWithBudget} from './writer.mjs';
 import {verifyDraft,editorialInput} from './verifier.mjs';
 import {inspectImage,stageImage} from './images.mjs';
+import {ensurePreparedImage} from './auto-image.mjs';
 import {usageSummary} from './budget.mjs';
 import {describeEvidence} from './evidence-quality.mjs';
 import {evaluateEditorialQuality} from './quality.mjs';
 import {extractHtml} from './extractor.mjs';
 import {syncOperationalAssets} from '../storage/operational.mjs';
+import {correctAttributedQuoteFromFinding,correctUnqualifiedRumorClaims} from './claims.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -52,7 +54,42 @@ export class NewsroomEngine {
     catch(e){record.status='failed';record.history.push({at:this.repo.now(),action:'write-failed',code:e.code||'AI_ERROR',category:e.category||null,recommendedAction:e.recommendedAction||null});this.repo.save(state);throw e;}
   });}
   async verify(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.draft&&['draft-generated','review-required','image-pending','ready-to-import'].includes(record.status),'STATE','Rascunho não disponível.');const result=verifyDraft(record.draft,record.dossier);record.verification=result;record.status=result.valid?'image-pending':'review-required';record.history.push({at:this.repo.now(),action:'verify',valid:result.valid,errors:result.errors.map(e=>e.code)});this.repo.save(state);return {id,status:record.status,verification:result};});}
-  async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=inspectImage(this.repo.root,id);record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status});this.repo.save(state);syncOperationalAssets(this.repo.root,`newsroom/data/images/${id}`);return {id,status:record.status,image:record.image};});}
+  async repairFactualClassification(id,{reason='Correção mecânica de classificação factual baseada em fonte primária.'}={}){return this.repo.withLock(async()=>{
+    const state=this.repo.read(),record=state.topics[id];
+    check(record?.draft&&record?.dossier,'STATE','Rascunho e dossiê são obrigatórios.');
+    check(record.status==='review-required','STATE','Correção mecânica permitida somente em rascunho bloqueado para revisão.');
+    const before=verifyDraft(record.draft,record.dossier);
+    check(!before.valid&&before.errors.length===1&&before.errors[0].code==='CLAIM_QUALIFIER','STATE','O bloqueio não corresponde ao caso mecânico permitido.');
+    const previousHash=hash(record.draft);
+    const changes=correctUnqualifiedRumorClaims(record.draft,record.dossier);
+    check(changes.length,'STATE','Nenhuma correção mecânica segura foi encontrada.');
+    const verification=verifyDraft(record.draft,record.dossier);
+    check(verification.valid,'DETERMINISTIC_BLOCKED','A correção mecânica não resolveu todas as validações.');
+    record.verification=verification;
+    record.status='image-pending';
+    record.history.push({at:this.repo.now(),action:'mechanical-classification-correction',reason,changes,previousDraftHash:previousHash,newDraftHash:hash(record.draft)});
+    this.repo.save(state);
+    return {id,status:record.status,changes,verification};
+  });}
+  async repairReviewFinding(id,{findingId,reason='Correção mecânica baseada na evidência vinculada ao achado.'}={}){return this.repo.withLock(async()=>{
+    const state=this.repo.read(),record=state.topics[id];
+    check(record?.draft&&record?.dossier,'STATE','Rascunho e dossiê são obrigatórios.');
+    check(record.status==='image-pending','STATE','A correção exige rascunho deterministicamente válido.');
+    const review=record.reviews?.find(item=>item.id===record.latestReviewId);
+    check(review?.status==='completed','STATE','Revisão semântica concluída indisponível.');
+    const finding=review.findings?.find(item=>item.findingId===findingId);
+    check(finding,'NOT_FOUND','Achado de revisão não encontrado.');
+    const previousHash=hash(record.draft);
+    const change=correctAttributedQuoteFromFinding(record.draft,record.dossier,finding);
+    check(change,'STATE','O achado não corresponde à correção mecânica segura implementada.');
+    const verification=verifyDraft(record.draft,record.dossier);
+    check(verification.valid,'DETERMINISTIC_BLOCKED','A correção literal não passou na validação determinística.');
+    record.verification=verification;
+    record.history.push({at:this.repo.now(),action:'mechanical-attribution-correction',reason,change,previousDraftHash:previousHash,newDraftHash:hash(record.draft)});
+    this.repo.save(state);
+    return {id,status:record.status,change,verification};
+  });}
+  async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=ensurePreparedImage(this.repo.root,id,record,{now:this.repo.now()});record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status,automatic:!!prepared.automatic});this.repo.save(state);syncOperationalAssets(this.repo.root,`newsroom/data/images/${id}`);return {id,status:record.status,image:record.image,automatic:!!prepared.automatic};});}
   async importDraft(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid&&!record.synthetic,'STATE','Somente rascunho real verificado pode ser importado.');check(['image-pending','ready-to-import','imported'].includes(record.status),'STATE','Execute prepare-image antes da importação.');
     const editorialId=`newsroom-${id}`,editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
     if(editorialRepo.exists(editorialId)){const existing=editorialRepo.get(editorialId),topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),expected=editorialInput(topic,record.draft,record.dossier,prepared.ready?prepared.image:null);check(hash(existing.input)===hash(expected),'IMPORT_CONFLICT','Rascunho editorial existente difere; revisão controlada necessária.');record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(expected);this.repo.save(state);return {id,status:'imported',editorialId,alreadyImported:true};}

@@ -10,6 +10,8 @@ import {hash, normalize} from '../../src/radar/common.mjs';
 import {NewsroomRepository} from '../../src/newsroom/repository.mjs';
 import {NewsroomEngine} from '../../src/newsroom/engine.mjs';
 import {ReviewEngine} from '../../src/newsroom/review/engine.mjs';
+import {evaluatePublicationEligibility} from '../../src/newsroom/publication-eligibility.mjs';
+import {correctAttributedQuoteFromFinding, correctUnqualifiedRumorClaims} from '../../src/newsroom/claims.mjs';
 import {Repository as EditorialRepository} from '../../src/editorial/repository.mjs';
 import {transition} from '../../src/editorial/lifecycle.mjs';
 import {migrateOperational, activateOperational} from '../../src/storage/operational-migration.mjs';
@@ -19,6 +21,7 @@ import {verifySnapshot} from '../../src/storage/integrity.mjs';
 import {restoreSnapshot} from '../../src/storage/exporter.mjs';
 import {AutomationRepository} from '../../src/automation/repository.mjs';
 import {AutomationOrchestrator} from '../../src/automation/orchestrator.mjs';
+import {dueSchedules} from '../../src/automation/scheduler.mjs';
 import {runMigrations} from '../../src/storage/migrations.mjs';
 import {openEncryptedDatabase, closeQuietly} from '../../src/storage/database.mjs';
 
@@ -270,17 +273,29 @@ test('automation: pipeline completo com motores reais e IA mockada', async t => 
   orchestrator.resume();
   const result = await orchestrator.runOnce({freeTierConfirmed: true});
   assert.equal(result.runs.length, 1);
-  assert.equal(result.runs[0].status, 'completed');
+  assert.equal(result.runs[0].status, 'completed', JSON.stringify(result.runs[0].error));
   const state = orchestrator.repository.read();
   assert.equal(state.jobs.length, 1);
   assert.equal(state.jobs[0].status, 'completed', JSON.stringify(state.jobs[0].error));
   assert.equal(state.jobs[0].stage, 'completed');
   assert(state.jobs[0].result.editorialId);
-  assert.equal(state.jobs[0].result.imageStatus, 'image-pending');
+  assert.equal(state.jobs[0].result.imageStatus, 'ready-to-import');
   const editorial = new EditorialRepository(fx.dir).get(state.jobs[0].result.editorialId);
   assert.equal(editorial.state, 'draft');
   assert.equal(editorial.input.article.title, draft().title);
   assert.equal(fs.existsSync(path.join(fx.dir, 'public/noticias', draft().slug + '.html')), false);
+  const eligibility = evaluatePublicationEligibility(orchestrator.newsroomRepo, fx.topic.id);
+  assert.equal(eligibility.eligible, false);
+  assert.equal(eligibility.status, 'awaiting-human-approval');
+  assert.equal(eligibility.checks.deterministicValidation, true);
+  assert.equal(eligibility.checks.semanticReview, true);
+  assert.equal(eligibility.checks.editorialImport, true);
+  assert.equal(eligibility.checks.approval, false);
+  assert.equal(eligibility.automaticApproval, false);
+  assert.equal(eligibility.automaticPublication, false);
+  assert.equal(eligibility.checks.imageRights, true);
+  assert(!eligibility.errors.some((item) => item.code === 'IMAGE_RIGHTS_REQUIRED'));
+  assert(eligibility.errors.some((item) => item.code === 'HUMAN_APPROVAL_REQUIRED'));
 });
 
 test('automation: lease impede duas instâncias concorrentes', async t => {
@@ -297,6 +312,127 @@ test('automation: lease impede duas instâncias concorrentes', async t => {
   await assert.rejects(() => withOperationalLease(fx.dir, {id: 'automation-orchestrator', ttlMs: 60000}, async () => 'second'), {code: 'LEASE_BUSY'});
   release();
   assert.equal(await first, 'first');
+});
+
+test('automation: lease renova fencing e bloqueia proprietário expirado', async t => {
+  const fx = fixture(t);
+  const repository = new AutomationRepository(fx.dir);
+  repository.init();
+  let expiredLease;
+  await withOperationalLease(fx.dir, {
+    id: 'automation-orchestrator',
+    ttlMs: 80,
+    autoRenew: false,
+  }, async (lease) => {
+    expiredLease = lease;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    await withOperationalLease(fx.dir, {
+      id: 'automation-orchestrator',
+      ttlMs: 5000,
+      autoRenew: false,
+    }, async (replacement) => {
+      assert.notEqual(replacement.fencingToken, lease.fencingToken);
+      await replacement.renew();
+    });
+    assert.throws(() => expiredLease.renew(), {code: 'LEASE_FENCED'});
+    assert.throws(() => repository.save(repository.read(), {lease: expiredLease}), {code: 'LEASE_FENCED'});
+  });
+});
+
+test('automation: agenda atrasada por mais de 24 horas é recuperada uma vez', async t => {
+  const fx = fixture(t);
+  const orchestrator = makeOrchestrator(fx);
+  orchestrator.init();
+  const state = orchestrator.repository.read();
+  const schedule = state.schedules[0];
+  schedule.nextRunAt = new Date(Date.parse(orchestrator.now()) - 24 * 60 * 60 * 1000).toISOString();
+  orchestrator.repository.save(state);
+  orchestrator.resume();
+  const plan = dueSchedules(orchestrator.repository.read(), Date.parse(orchestrator.now()), orchestrator.config);
+  assert.equal(plan.due.length, 1);
+  assert.equal(plan.due[0].coalesced, true);
+  assert(plan.due[0].missedIntervals >= 12);
+  await orchestrator.runOnce({freeTierConfirmed: true});
+  const recovered = orchestrator.repository.read();
+  assert.equal(recovered.runs.length, 1);
+  assert.equal(recovered.runs[0].status, 'completed');
+  assert(recovered.events.some((event) => event.type === 'scheduler' && event.details?.missedIntervals >= 12));
+  assert(Date.parse(recovered.schedules[0].nextRunAt) > Date.parse(orchestrator.now()));
+});
+
+test('automation: execução de radar não tenta projetar etapa sem job', async t => {
+  const fx = fixture(t);
+  const orchestrator = makeOrchestrator(fx, {
+    radarEngine: {
+      fetch: async () => ({id: 'radar-run-fixture', signals: 2, newTopics: 1, observedTopics: 2, uniqueTopics: 3}),
+    },
+  });
+  orchestrator.init();
+  const configured = orchestrator.repository.read();
+  configured.schedules[0].activity = 'radar';
+  configured.schedules[0].id = 'radar';
+  orchestrator.repository.save(configured);
+  orchestrator.resume();
+  const result = await orchestrator.runOnce({freeTierConfirmed: true});
+  assert.equal(result.runs[0].status, 'completed', JSON.stringify(result.runs[0].error));
+  const persisted = orchestrator.repository.read();
+  assert.equal(persisted.runs[0].radarRunId, 'radar-run-fixture');
+  assert.equal(persisted.steps.length, 0);
+  assert.equal(orchestrator.repository.metrics().automation.steps, 0);
+});
+
+test('automation: correção mecânica limitada reclassifica rumor contraditório com evidência primária', () => {
+  const value = draft();
+  value.claims[0].classification = 'rumor';
+  value.claims[0].nature = 'rumor';
+  value.claims[0].text = 'A rede registra 150 membros e 64 relatórios oficiais.';
+  value.sections[0].paragraphs[0] = value.claims[0].text;
+  const dossier = {
+    sources: [{id: 'source-primary', type: 'primary-organization'}],
+    evidence: [{
+      id: 'evid-fixture',
+      sourceId: 'source-primary',
+      excerpt: 'The network has 150 registered members and contributed to 64 official reports.',
+    }],
+  };
+  const changes = correctUnqualifiedRumorClaims(value, dossier);
+  assert.equal(changes.length, 1);
+  assert.equal(value.claims[0].classification, 'confirmed');
+  assert.equal(value.claims[0].nature, 'documented-fact');
+
+  const qualified = structuredClone(value);
+  qualified.claims[0].classification = 'rumor';
+  qualified.claims[0].nature = 'rumor';
+  qualified.claims[0].text = 'Rumor não confirmado: a rede registra 150 membros.';
+  assert.equal(correctUnqualifiedRumorClaims(qualified, dossier).length, 0);
+});
+
+test('automation: correção mecânica de atribuição usa citação literal da evidência', () => {
+  const value = draft();
+  value.claims[1].classification = 'attributed';
+  value.claims[1].nature = 'attributed-statement';
+  value.claims[1].attribution = 'Pesquisadora';
+  value.claims[1].text = 'A pesquisadora destaca a necessidade de mais olhos humanos e envolvimento de diferentes origens.';
+  value.sections[1].paragraphs[0] = value.claims[1].text;
+  const dossier = {
+    evidence: [{
+      id: 'evid-fixture',
+      excerpt: '"We need more human minds, more people with their eyes on the sky and on the data, both literally and figuratively," said the researcher.',
+    }],
+  };
+  const change = correctAttributedQuoteFromFinding(value, dossier, {
+    findingId: 'finding-attribution',
+    severity: 'major',
+    category: 'attribution',
+    field: 'body',
+    sectionIndex: 1,
+    paragraphIndex: 0,
+    claimIndex: 1,
+    evidenceIds: ['evid-fixture'],
+  });
+  assert.equal(change.claimIndex, 1);
+  assert.match(value.claims[1].text, /^“We need more human minds/);
+  assert.equal(value.sections[1].paragraphs[0], value.claims[1].text);
 });
 
 test('automation: journal editorial reconcilia commit SQL após interrupção', async t => {

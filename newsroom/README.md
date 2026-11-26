@@ -42,6 +42,9 @@ npm run newsroom -- review pauta-ID --dry-run
 npm run newsroom -- review pauta-ID --confirm-free-tier
 npm run newsroom -- review-status pauta-ID
 npm run newsroom -- review-history pauta-ID
+npm run newsroom -- eligibility pauta-ID
+npm run newsroom -- repair-classification pauta-ID --reason "Correção mecânica comprovada"
+npm run newsroom -- repair-review-finding pauta-ID --finding-id ACHADO --reason "Correção mecânica"
 npm run newsroom -- run --limit 3 --confirm-free-tier
 npm run newsroom -- show pauta-ID
 npm run newsroom -- list
@@ -64,11 +67,31 @@ Após `storage activate`, os repositórios de radar, newsroom e editorial leem e
 `storage/data/operational.sqlcipher`; os JSON privados permanecem intactos como legado de
 recuperação. Consumo, revisões, históricos e assets são migrados junto do estado do newsroom.
 
-`review-v2` envia ao Gemini um payload compacto: título, resumo, seções, claims com aliases de evidência e cada trecho de evidência uma única vez. O resultado continua no contrato `review-v1`, vinculado ao hash integral e à configuração do revisor. Aliases e IDs inexistentes, respostas truncadas e resultados incompatíveis são rejeitados. Severidade `critical`/`major`, claims contraditos e sinais de prompt injection elevam o resultado efetivo; falhas determinísticas bloqueantes nunca são sobrescritas. `thinkingLevel: minimal` é explícito e limitado à faixa do modelo.
+`review-v2` envia ao Gemini um payload compacto: título, resumo, seções, claims com aliases
+de evidência e cada trecho de evidência uma única vez, preservando até 600 caracteres por
+trecho. O resultado continua no contrato `review-v1`, vinculado ao hash integral e à
+configuração do revisor. Aliases e IDs inexistentes, respostas truncadas e resultados
+incompatíveis são rejeitados. Severidade `critical`/`major`, claims contraditos e sinais de
+prompt injection elevam o resultado efetivo; falhas determinísticas bloqueantes nunca são
+sobrescritas. `thinkingLevel: minimal` é explícito e limitado à faixa do modelo.
 
 O orçamento de revisão é separado por provedor/operação: nesta homologação, até 2 chamadas por tarefa, 15.000 tokens, 4.000 de entrada estimada, 3.000 de saída e 7.000 tokens por minuto. A pré-checagem da redação reserva margem para a revisão posterior. A chamada real usou `gemini-3.5-flash-lite`; a configuração inicial com 3.8 Flash excedeu timeout e foi descartada.
 
-Para imagem, o operador deve preparar `newsroom/data/images/PAUTA-ID/manifest.json` com `kind`, `credit`, `sourceUrl`, `license`, `licenseUrl`, `authorizationBasis`, `checkedAt`, `alt`, `caption`, `previewAllowed`. Ilustrações próprias podem declarar `rightsType: "self-created"` e `thirdPartyElements: []`; nesse caso o crédito deve ser `Pulso Digital` e logotipos/capturas/artes de terceiros são bloqueados. Pode fornecer `main.webp` 1600×900, `small.webp` 640×360 e `share.jpg` 1600×900 já otimizados. Se fornecer apenas `original.jpg/png/webp` local com pelo menos 1600×900 e proporção 16:9, `prepare-image` gera as três variantes com Pillow **local opcional** (`python`, sem dependência npm adicional) e nunca amplia o original. A ferramenta valida cabeçalhos, dimensões, tamanho, origem e fundamento documentado; não baixa nem gera imagens por IA. Atestar direitos no manifesto não equivale a aprovação editorial: essa revisão permanece com operador humano. Sem manifesto válido, a imagem fica pendente. Não reutilize imagem de outra notícia só para atender ao contrato.
+Para imagem, manifestos oficiais/licenciados preparados pelo operador continuam sendo a
+entrada preferencial. Quando não existe manifesto, `prepare-image` gera uma ilustração
+própria determinística com software local, identifica-a como ilustração e registra origem,
+crédito, licença, fundamento, alt, legenda, hash, dimensões e variantes WebP/JPEG. Também
+aceita um `original.jpg/png/webp` local com pelo menos 1600×900 e proporção 16:9, gerando as
+três variantes com Pillow local. A ferramenta nunca baixa imagem sem fundamento, não amplia
+bitmap pequeno e não presume autorização pela disponibilidade pública. Direitos no manifesto
+não equivalem a aprovação editorial: revisão humana e aprovação explícita continuam
+obrigatórias.
+
+`eligibility` combina validação determinística, revisão semântica vinculada ao hash atual,
+evidências, manifesto de imagem, importação, validação editorial, aprovação humana, integridade
+e journal. `repair-classification` e `repair-review-finding` aplicam somente correções
+mecânicas estreitas baseadas em evidência e registram hashes anterior/posterior; não redigem
+conteúdo e não aprovam.
 
 ## Exemplo operacional e recuperação
 

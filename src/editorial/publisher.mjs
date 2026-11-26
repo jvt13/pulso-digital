@@ -28,7 +28,21 @@ export function publicArticle(input, target, now) {
 export function verifyOutput(stage, expectedArticles) {
   const articles = JSON.parse(fs.readFileSync(confined(stage,'content/articles.json'),'utf8'));
   ensure(articles.length === expectedArticles && new Set(articles.map(a=>a.slug)).size === articles.length, 'OUTPUT_INTEGRITY', 'Quantidade ou slugs divergentes na saída preparada.');
-  for (const a of articles) ensure(fs.existsSync(confined(stage,`public/noticias/${a.slug}.html`)), 'OUTPUT_INTEGRITY', 'Página de matéria ausente.');
+  const index = fs.readFileSync(confined(stage,'public/index.html'),'utf8');
+  const rss = fs.readFileSync(confined(stage,'public/rss.xml'),'utf8');
+  const sitemap = fs.readFileSync(confined(stage,'public/sitemap.xml'),'utf8');
+  ensure(/<rss\b/i.test(rss) && /<urlset\b/i.test(sitemap), 'OUTPUT_INTEGRITY', 'RSS ou sitemap inválido.');
+  for (const a of articles) {
+    const page = confined(stage,`public/noticias/${a.slug}.html`);
+    ensure(fs.existsSync(page), 'OUTPUT_INTEGRITY', 'Página de matéria ausente.');
+    ensure(fs.existsSync(confined(stage,`public/categorias/${a.category}.html`)), 'OUTPUT_INTEGRITY', 'Página de categoria ausente.');
+    ensure(index.includes('Pulso Digital') && rss.includes(`noticias/${a.slug}.html`) && sitemap.includes(`noticias/${a.slug}.html`), 'OUTPUT_INTEGRITY', 'Matéria não integrada à home, RSS ou sitemap.');
+    const articleHtml = fs.readFileSync(page,'utf8');
+    ensure(/<link rel="canonical" href="https?:\/\//i.test(articleHtml), 'OUTPUT_SEO', 'Canonical ausente.');
+    ensure(/<meta property="og:title"/i.test(articleHtml) && /<meta name="description" content="[^"]+"/i.test(articleHtml), 'OUTPUT_SEO', 'Metadados SEO obrigatórios ausentes.');
+    ensure(/<script type="application\/ld\+json">[^<]*"@type":"NewsArticle"/i.test(articleHtml), 'OUTPUT_SEO', 'Dados estruturados NewsArticle ausentes.');
+    ensure(/<img\b[^>]*\bsrc="[^"]+"/i.test(articleHtml) && /<figcaption>/i.test(articleHtml), 'OUTPUT_IMAGE', 'Imagem ou legenda pública ausente.');
+  }
   let htmlPages = 0;
   for (const { file, relative } of filesUnder(stage, 'public').filter(f=>f.relative.endsWith('.html'))) {
     htmlPages++;

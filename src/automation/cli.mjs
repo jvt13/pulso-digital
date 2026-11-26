@@ -2,12 +2,13 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {check, StorageError} from '../storage/common.mjs';
 import {AutomationOrchestrator} from './orchestrator.mjs';
+import {loadLocalEnv} from '../newsroom/env.mjs';
 
 const help = `Pulso Digital — automação editorial
 Uso: npm run automation -- COMANDO [opções]
 
 help | status | init | plan | health | metrics [--json]
-run --once [--confirm-free-tier] | run --dry-run
+run --once [--confirm-free-tier] [--max-articles N] [--activity NOME] | run --dry-run
 start [--max-iterations N] [--confirm-free-tier]
 pause --reason "Motivo" | resume
 jobs [--limit N] | history [--limit N]
@@ -19,7 +20,7 @@ start é primeiro plano, sem daemon próprio. Não há publicação automática.
 
 const commands = new Set(['help', 'status', 'init', 'plan', 'run', 'start', 'pause', 'resume', 'jobs', 'history', 'health', 'metrics', 'recover']);
 const booleanOptions = new Set(['json', 'once', 'dry-run', 'confirm-free-tier']);
-const valueOptions = new Set(['root', 'reason', 'limit', 'max-iterations']);
+const valueOptions = new Set(['root', 'reason', 'limit', 'max-iterations', 'max-articles', 'activity']);
 
 function parse(argv) {
   const opts = {}, args = [];
@@ -50,6 +51,7 @@ export async function main(argv = process.argv.slice(2)) {
     const parsed = parse(argv);
     opts = parsed.opts;
     const root = path.resolve(opts.root || path.join(path.dirname(fileURLToPath(import.meta.url)), '../..'));
+    loadLocalEnv(root);
     const orchestrator = new AutomationOrchestrator(root);
     let result;
     switch (parsed.command) {
@@ -86,6 +88,8 @@ export async function main(argv = process.argv.slice(2)) {
           ...(await orchestrator.runOnce({
             dryRun: Boolean(opts['dry-run']),
             freeTierConfirmed: Boolean(opts['confirm-free-tier']),
+            ...(opts['max-articles'] ? {maxArticles: Number(opts['max-articles'])} : {}),
+            ...(opts.activity ? {activity: opts.activity} : {}),
           })),
         };
         break;

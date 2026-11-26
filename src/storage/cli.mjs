@@ -9,6 +9,7 @@ import {
   createCheckpoint,
   listSnapshots,
   loadProjectConfig,
+  planSnapshotRetention,
   recoverStorageLock,
   selectSnapshot,
 } from './snapshots.mjs';
@@ -20,7 +21,7 @@ const help = `Pulso Digital - armazenamento criptografado
 Uso: npm run storage -- COMANDO [opções]
 
 help | status | checkpoint [--dry-run] | verify | inspect
-metrics [--json] | restore --dry-run | restore --target DIRETORIO
+metrics [--json] | retention [--json] | restore --dry-run | restore --target DIRETORIO
 migrate [--dry-run] | migration-status | compare | activate | backup
 upgrade [--dry-run]
 keygen [--env-file ARQUIVO] | recover --reason "Justificativa"
@@ -37,6 +38,7 @@ const commands = {
   verify: {values: ['snapshot'], flags: []},
   inspect: {values: ['snapshot'], flags: []},
   metrics: {values: ['snapshot'], flags: []},
+  retention: {values: [], flags: []},
   restore: {values: ['target', 'snapshot'], flags: ['dry-run']},
   migrate: {values: [], flags: ['dry-run']},
   'migration-status': {values: [], flags: []},
@@ -198,6 +200,10 @@ export async function main(argv = process.argv.slice(2)) {
         const selected = selectSnapshot(root, config, opts.snapshot || null);
         const verified = verifySnapshot(selected.directory, loaded.key, config);
         result = {command: 'metrics', snapshotId: verified.snapshotId, metrics: verified.metrics};
+        break;
+      }
+      case 'retention': {
+        result = {command: 'retention', ...planSnapshotRetention(root, config)};
         break;
       }
       case 'restore': {

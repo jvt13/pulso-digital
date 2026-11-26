@@ -6,12 +6,16 @@ import {NewsroomEngine} from './engine.mjs';
 import {ReviewEngine} from './review/engine.mjs';
 import {check} from './common.mjs';
 import {loadLocalEnv} from './env.mjs';
+import {evaluatePublicationEligibility} from './publication-eligibility.mjs';
 
 const help=`Newsroom privado Pulso Digital
 Uso: npm run newsroom -- COMANDO [ID] [opções]
 help | status | providers | plan [--limit 3] | list | show ID | usage
 research ID [--url URL] | evidence ID | write ID [--provider groq|gemini] [--reason TEXTO]
 verify ID | prepare-image ID | import ID | quality ID
+eligibility ID
+repair-classification ID [--reason TEXTO]
+repair-review-finding ID --finding-id ID [--reason TEXTO]
 enrich ID [--reason TEXTO]
 revise ID --file JSON --reason TEXTO
 review ID [--provider gemini] [--dry-run] [--confirm-free-tier]
@@ -39,15 +43,18 @@ const commandOptions={
   enrich:['reason'],
   revise:['file','reason'],
   quality:[],
+  eligibility:[],
+  'repair-classification':['reason'],
+  'repair-review-finding':['finding-id','reason'],
   review:['provider','dry-run','confirm-free-tier','help'],
   'review-status':[],
   'review-history':[],
   run:['limit','dry-run','confirm-free-tier'],
   recover:['reason'],
 };
-const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','review','review-status','review-history']);
+const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','eligibility','repair-classification','repair-review-finding','review','review-status','review-history']);
 const booleans=new Set(['json','dry-run','confirm-free-tier','help']);
-const globalValues=new Set(['root','limit','url','provider','reason','file']);
+const globalValues=new Set(['root','limit','url','provider','reason','file','finding-id']);
 
 export async function main(argv=process.argv.slice(2)){
   const opts={},args=[];
@@ -103,6 +110,12 @@ export async function main(argv=process.argv.slice(2)){
         break;
       }
       case 'quality':result=engine.quality(id);break;
+      case 'eligibility':result=evaluatePublicationEligibility(repo,id);break;
+      case 'repair-classification':result=await engine.repairFactualClassification(id,{reason:opts.reason||'Correção mecânica de classificação factual baseada em fonte primária.'});break;
+      case 'repair-review-finding':
+        check(opts['finding-id'],'CLI','Informe --finding-id.');
+        result=await engine.repairReviewFinding(id,{findingId:opts['finding-id'],reason:opts.reason||'Correção mecânica baseada na evidência vinculada ao achado.'});
+        break;
       case 'review':{
         if(opts.help){result={help:'Use review ID [--provider gemini] [--dry-run] [--confirm-free-tier]. O resultado é privado e vinculado ao hash do conteúdo.'};break;}
         result=await reviewEngine.review(id,{provider:opts.provider,freeTierConfirmed:!!opts['confirm-free-tier'],dryRun:!!opts['dry-run']});break;

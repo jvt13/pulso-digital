@@ -3,7 +3,7 @@ import {hash} from '../common.mjs';
 import {REVIEW_PROMPT_VERSION, REVIEW_SCHEMA_VERSION, geminiReviewSchema} from './schema.mjs';
 import {reviewContentFingerprint} from './hash.mjs';
 
-const REVIEW_EVIDENCE_CHARS = 160;
+const REVIEW_EVIDENCE_CHARS = 600;
 const INJECTION = /\b(?:ignore\s+(?:all\s+)?(?:previous|above|system)|system\s+prompt|developer\s+message|approve\s+(?:this|immediately)|publish\s+immediately|reveal\s+(?:secrets?|credentials?)|execute\s+(?:tool|command)|<\s*\/?\s*script)/i;
 
 export function reviewConfiguration(root, provider, model) {

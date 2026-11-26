@@ -6,6 +6,7 @@ import {
   operationalActive,
   operationalDatabaseExists,
   operationalMetrics,
+  readOperationalLease,
   readOperationalStateWithHash,
   withOperationalLease,
   writeOperationalState,
@@ -74,10 +75,14 @@ export class AutomationRepository {
     return {alreadyInitialized: false, state};
   }
 
-  save(state) {
+  save(state, {lease = null} = {}) {
     validateAutomationState(state, this.config);
     const trimmed = trimAutomationState({...state, updatedAt: this.now()}, this.config);
-    this.hash = writeOperationalState(this.root, 'automation', trimmed, {expectedHash: this.hash, action: 'automation-state'});
+    this.hash = writeOperationalState(this.root, 'automation', trimmed, {
+      expectedHash: this.hash,
+      action: 'automation-state',
+      lease,
+    });
     return trimmed;
   }
 
@@ -109,19 +114,23 @@ export class AutomationRepository {
     return this.save(state);
   }
 
-  markStaleRuns() {
+  markStaleRuns({lease = null} = {}) {
     const state = this.read();
     const now = Date.parse(this.now());
     let changed = false;
     for (const run of state.runs) {
-      if (run.status === 'running' && run.leaseExpiresAt && Date.parse(run.leaseExpiresAt) < now) {
+      const activeLease = run.status === 'running'
+        ? readOperationalLease(this.root, run.leaseOwner ? state.control.leaseId || 'automation-orchestrator' : null)
+        : null;
+      const lostLease = !activeLease || activeLease.token !== run.leaseOwner || !(Date.parse(activeLease.expires_at) > now);
+      if (run.status === 'running' && lostLease) {
         run.status = 'recovery-required';
-        run.error = {code: 'LEASE_EXPIRED', message: 'Processo anterior não confirmou a execução; resultado externo é desconhecido.'};
+        run.error = {code: activeLease ? 'LEASE_EXPIRED' : 'LEASE_MISSING', message: 'Processo anterior não confirmou a execução; resultado externo é desconhecido.'};
         appendEvent(state, {at: this.now(), type: 'recovery', severity: 'error', runId: run.id, message: 'Execução órfã marcada para recuperação.'}, this.config);
         changed = true;
       }
     }
-    if (changed) this.save(state);
+    if (changed) this.save(state, {lease});
     return {changed};
   }
 

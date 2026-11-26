@@ -5,12 +5,13 @@ import {Pipeline, classify} from './pipeline.mjs';
 import {automationHealth} from './health.mjs';
 import {recoverAutomation} from './recovery.mjs';
 import {appendEvent, defaultAutomationState, jobsToday} from './state.mjs';
-import {advanceSchedule, applyCoalescedSkip, dueSchedules, nextRunAt} from './scheduler.mjs';
+import {advanceSchedule, dueSchedules, nextRunAt} from './scheduler.mjs';
 import {RadarRepository} from '../radar/repository.mjs';
 import {RadarEngine} from '../radar/engine.mjs';
 import {NewsroomRepository} from '../newsroom/repository.mjs';
 import {NewsroomEngine} from '../newsroom/engine.mjs';
 import {ReviewEngine} from '../newsroom/review/engine.mjs';
+import {evaluatePublicationEligibility} from '../newsroom/publication-eligibility.mjs';
 import {createCheckpoint, loadProjectConfig, selectSnapshot} from '../storage/snapshots.mjs';
 import {verifySnapshot} from '../storage/integrity.mjs';
 import {loadStorageKey} from '../storage/env.mjs';
@@ -32,6 +33,7 @@ export class AutomationOrchestrator {
       newsroom: this.newsroom,
       reviewEngine: this.reviewEngine,
       radarEngine: this.radar,
+      publicationEligibility: dependencies.publicationEligibility || ((topicId) => evaluatePublicationEligibility(this.newsroomRepo, topicId)),
       backup: dependencies.backup || this._backup.bind(this),
       now,
     });
@@ -93,22 +95,28 @@ export class AutomationOrchestrator {
     };
   }
 
-  async runOnce({dryRun = false, mode = 'once', freeTierConfirmed = false, maxArticles = this.config.maxArticlesPerDay} = {}) {
+  async runOnce({dryRun = false, mode = 'once', freeTierConfirmed = false, maxArticles = this.config.maxArticlesPerDay, activity = null} = {}) {
+    if (!Number.isInteger(maxArticles) || maxArticles < 1 || maxArticles > this.config.maxArticlesPerDay) {
+      throw Object.assign(new Error('Limite de matérias da execução inválido.'), {code: 'LIMIT'});
+    }
     if (dryRun) return {dryRun: true, ...this.plan()};
     return this.repository.withLease(async (lease) => {
-      this.repository.markStaleRuns();
+      this.repository.markStaleRuns({lease});
       const state = this.repository.read();
       if (state.control.paused) throw Object.assign(new Error('Automação pausada.'), {code: 'PAUSED'});
       const now = Date.parse(this.now());
       const schedulePlan = dueSchedules(state, now, this.config);
-      if (schedulePlan.skipped.length) {
-        applyCoalescedSkip(state, schedulePlan.skipped, this.config, this.now());
-        for (const skipped of schedulePlan.skipped) appendEvent(state, {at: this.now(), type: 'scheduler', severity: 'warning', message: 'Execução atrasada consolidada.', details: skipped}, this.config);
-        this.repository.save(state);
+      let due = schedulePlan.due;
+      if (activity) {
+        const requested = state.schedules.find((schedule) => schedule.activity === activity);
+        if (!requested) throw Object.assign(new Error('Atividade não configurada.'), {code: 'AUTOMATION_ACTIVITY'});
+        if (!requested.enabled) throw Object.assign(new Error('Atividade desabilitada.'), {code: 'ACTIVITY_DISABLED'});
+        due = [{...requested, plannedAt: this.now(), manualTrigger: true}];
       }
       const runs = [];
       state.control.lastTickAt = this.now();
-      for (const schedule of schedulePlan.due) {
+      for (const schedule of due) {
+        lease.assertHeld();
         const index = state.schedules.findIndex((entry) => entry.id === schedule.id);
         const run = {
           id: this.repository.newId('run'),
@@ -124,11 +132,35 @@ export class AutomationOrchestrator {
           error: null,
         };
         state.runs.push(run);
+        if (schedule.manualTrigger) {
+          appendEvent(state, {
+            at: this.now(),
+            type: 'scheduler',
+            severity: 'info',
+            runId: run.id,
+            message: 'Execução manual de atividade solicitada explicitamente.',
+            details: {scheduleId: schedule.id, activity: schedule.activity},
+          }, this.config);
+        }
+        if (schedule.coalesced) {
+          appendEvent(state, {
+            at: this.now(),
+            type: 'scheduler',
+            severity: 'warning',
+            runId: run.id,
+            message: 'Execução atrasada consolidada em uma única recuperação.',
+            details: {scheduleId: schedule.id, overdueMs: schedule.overdueMs, missedIntervals: schedule.missedIntervals},
+          }, this.config);
+        }
         state.schedules[index] = advanceSchedule(schedule, now, 'running', this.config);
-        this.repository.save(state);
+        this.repository.save(state, {lease});
         try {
           await this._execute(state, run, {
-            persist: () => this.repository.save(state),
+            lease,
+            persist: () => {
+              lease.assertHeld();
+              this.repository.save(state, {lease});
+            },
             freeTierConfirmed,
             maxArticles,
           });
@@ -144,10 +176,10 @@ export class AutomationOrchestrator {
         state.schedules[index] = {...current, lastStatus: run.status, lastRunAt: run.finishedAt};
         state.control.lastRunAt = run.finishedAt;
         appendEvent(state, {at: run.finishedAt, type: 'run', severity: run.status === 'completed' ? 'info' : 'warning', runId: run.id, message: `Execução ${run.activity}: ${run.status}.`, details: {scheduleId: run.scheduleId}}, this.config);
-        this.repository.save(state);
+        this.repository.save(state, {lease});
         runs.push(run);
       }
-      this.repository.save(state);
+      this.repository.save(state, {lease});
       return {
         backend: 'sqlite',
         mode,

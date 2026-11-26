@@ -254,6 +254,41 @@ export function listSnapshots(root, config) {
   return items.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
 }
 
+export function snapshotRetentionPlan(items, config, {protectedIds = []} = {}) {
+  const limit = config.retention?.maxSnapshots;
+  check(Number.isInteger(limit) && limit > 0, 'STORAGE_CONFIG', 'Limite configurável de snapshots inválido.');
+  const ordered = [...items].sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+  const newestRetained = new Set(ordered.slice(0, limit).map((item) => item.id || item.directory));
+  const protectedSet = new Set(protectedIds.filter(Boolean));
+  const latestHealthy = ordered.find((item) => !item.error);
+  const protectedSnapshots = ordered.filter((item) => protectedSet.has(item.id || item.directory) || item.id === latestHealthy?.id);
+  for (const item of protectedSnapshots) protectedSet.add(item.id || item.directory);
+  const kept = ordered.filter((item) => newestRetained.has(item.id || item.directory) || protectedSet.has(item.id || item.directory) || item.error);
+  const candidates = ordered.filter((item) => !kept.includes(item));
+  return {
+    simulation: true,
+    deletionPerformed: false,
+    policy: 'keep-newest-and-protected',
+    maxSnapshots: limit,
+    total: ordered.length,
+    retainedCount: kept.length,
+    candidateCount: candidates.length,
+    latestHealthy: latestHealthy?.id || null,
+    protectedIds: [...protectedSet].sort(),
+    retained: kept.map((item) => ({id: item.id || item.directory, createdAt: item.createdAt || null, reason: item.error ? 'integrity-error-preserved' : protectedSet.has(item.id || item.directory) ? 'protected' : 'newest-window'})),
+    removalCandidates: candidates.map((item) => ({id: item.id || item.directory, createdAt: item.createdAt || null, databaseBytes: item.databaseBytes ?? null})),
+  };
+}
+
+export function planSnapshotRetention(root, config, {protectedIds = []} = {}) {
+  const markerFile = path.join(root, config.paths.data, config.operational?.markerFilename || 'operational.json');
+  const marker = fs.existsSync(markerFile) ? readJson(markerFile, 65536) : null;
+  const markerProtected = [marker?.backupSnapshotId].filter(Boolean);
+  return snapshotRetentionPlan(listSnapshots(root, config), config, {
+    protectedIds: [...markerProtected, ...protectedIds],
+  });
+}
+
 export function selectSnapshot(root, config, requestedId = null) {
   const items = listSnapshots(root, config);
   const selected = requestedId

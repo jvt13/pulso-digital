@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.7
+# Pulso Digital — v1.4.8
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -50,9 +50,16 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 
 ## Automação editorial
 - `npm run automation -- help` apresenta o orquestrador persistente, `status`, `plan`, `run --once`, `run --dry-run`, `start`, `pause`, `resume`, `jobs`, `history`, `health` e `metrics`.
-- A automação inicia pausada. O padrão não executa IA real (`ai.enabled=false`); a homologação ponta a ponta com chamadas reais será feita posteriormente.
+- A automação inicia pausada. O padrão não executa IA real (`ai.enabled=false`). A PD-006.6
+  executou chamadas reais dentro dos limites autorizados e preservou os resultados privados;
+  qualquer nova chamada exige tarefa e autorização próprias.
 - Agendas padrão: radar a cada 30 minutos, seleção a cada 120 minutos, health a cada 5 minutos e backup a cada 24 horas. Execuções atrasadas são consolidadas, sem disparar todos os horários perdidos.
-- Leases no SQLite impedem duas instâncias concorrentes. O pipeline usa os motores existentes e importa somente rascunhos privados; não aprova nem publica.
+- Leases no SQLite impedem duas instâncias concorrentes, com renovação automática, fencing nas
+  gravações e bloqueio explícito de proprietários expirados. Execuções atrasadas por mais de
+  24 horas são consolidadas em uma única recuperação por atividade.
+- O pipeline usa os motores existentes, reutiliza rascunhos já gerados e importa somente
+  rascunhos privados. Uma política de elegibilidade verifica revisão semântica, imagem,
+  evidência, integridade e aprovação, mas não aprova nem publica.
 - A migration v5 adiciona `automation_schedules`, `automation_runs`, `automation_jobs`, `automation_steps`, `automation_events` e `automation_control`; use `npm run storage -- upgrade` para aplicar migrations ao banco operacional ativo.
 
 ## GitHub Pages
@@ -83,6 +90,6 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
 ## Automação editorial supervisionada
-O orquestrador da versão 1.4.7 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem e importação de rascunhos privados. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. A operação contínua e as chamadas reais de IA deverão ser homologadas na etapa seguinte. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+O orquestrador da versão 1.4.8 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
 
 Referências: https://support.google.com/trends/answer/3076011 ; https://support.google.com/adsense/answer/7299563 ; https://developers.google.com/search/docs/essentials/spam-policies

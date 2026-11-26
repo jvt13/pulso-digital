@@ -207,7 +207,19 @@ export function readOperationalStateWithHash(root, namespace, {key = null, confi
   }
 }
 
-export function writeOperationalState(root, namespace, state, {expectedHash = null, key = null, config = loadOperationalConfig(root), action = 'write'} = {}) {
+export function readOperationalLease(root, id, {key = null, config = loadOperationalConfig(root)} = {}) {
+  const loadedKey = loadKey(root, key);
+  check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
+  let db;
+  try {
+    db = openOperational(root, config, loadedKey, {readonly: true});
+    return db.prepare('SELECT id, owner, host, token, acquired_at, heartbeat_at, expires_at FROM leases WHERE id = ?').get(id) || null;
+  } finally {
+    closeQuietly(db);
+  }
+}
+
+export function writeOperationalState(root, namespace, state, {expectedHash = null, key = null, config = loadOperationalConfig(root), action = 'write', lease = null} = {}) {
   const loadedKey = loadKey(root, key);
   const marker = readOperationalMarker(root, config, {key: loadedKey});
   check(marker, 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
@@ -215,6 +227,11 @@ export function writeOperationalState(root, namespace, state, {expectedHash = nu
   try {
     db = openOperational(root, config, loadedKey, {readonly: false});
     const result = withTransaction(db, () => {
+      if (lease) {
+        const currentLease = db.prepare('SELECT token, expires_at FROM leases WHERE id = ?').get(lease.id);
+        check(currentLease?.token === lease.token, 'LEASE_FENCED', 'A gravação foi bloqueada: outro proprietário possui a lease.');
+        check(Date.parse(currentLease.expires_at) > Date.now(), 'LEASE_LOST', 'A gravação foi bloqueada: a lease expirou.');
+      }
       const current = db.prepare('SELECT payload_sha256 FROM operational_state WHERE namespace = ?').get(namespace);
       if (expectedHash) {
         check(current?.payload_sha256 === expectedHash, 'OPERATIONAL_CONFLICT', `Estado ${namespace} mudou desde a leitura.`);
@@ -232,14 +249,48 @@ export function writeOperationalState(root, namespace, state, {expectedHash = nu
   }
 }
 
-export async function withOperationalLease(root, {id, ttlMs = 900000, owner = process.pid, key = null, config = loadOperationalConfig(root)} = {}, callback) {
+export async function withOperationalLease(root, {
+  id,
+  ttlMs = 900000,
+  owner = process.pid,
+  key = null,
+  config = loadOperationalConfig(root),
+  autoRenew = true,
+  renewIntervalMs = Math.max(1000, Math.floor(ttlMs / 3)),
+} = {}, callback) {
   const loadedKey = loadKey(root, key);
   check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
   check(typeof id === 'string' && id.length > 0 && Number.isInteger(ttlMs) && ttlMs > 0, 'LEASE', 'Lease inválida.');
   let db;
   const token = crypto.randomUUID();
   const acquiredAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  let expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  let heartbeatTimer = null;
+  let leaseError = null;
+  const assertHeld = () => {
+    if (leaseError) throw leaseError;
+    const current = db?.prepare('SELECT token, expires_at FROM leases WHERE id = ?').get(id);
+    if (current?.token !== token) throw new StorageError('LEASE_FENCED', 'A lease foi assumida por outro proprietário.');
+    if (!(Date.parse(current.expires_at) > Date.now())) throw new StorageError('LEASE_LOST', 'A lease expirou.');
+    return {id, token, fencingToken: token, expiresAt: current.expires_at};
+  };
+  const renew = () => {
+    assertHeld();
+    expiresAt = new Date(Date.now() + ttlMs).toISOString();
+    const heartbeatAt = new Date().toISOString();
+    withTransaction(db, () => {
+      const result = db.prepare(`UPDATE leases SET heartbeat_at = ?, expires_at = ?, canonical_json = ?
+        WHERE id = ? AND token = ?`).run(
+        heartbeatAt,
+        expiresAt,
+        canonicalJson({id, owner, host: os.hostname(), token, fencingToken: token, acquiredAt, heartbeatAt, expiresAt}),
+        id,
+        token,
+      );
+      check(result.changes === 1, 'LEASE_FENCED', 'Não foi possível renovar: a lease pertence a outro proprietário.');
+    });
+    return expiresAt;
+  };
   try {
     db = openOperational(root, config, loadedKey, {readonly: false});
     withTransaction(db, () => {
@@ -247,10 +298,29 @@ export async function withOperationalLease(root, {id, ttlMs = 900000, owner = pr
       if (current && Date.parse(current.expires_at) > Date.now()) throw new StorageError('LEASE_BUSY', 'Outro processo possui lease ativa.');
       if (current) db.prepare('DELETE FROM leases WHERE id = ?').run(id);
       db.prepare('INSERT INTO leases (id, owner, host, token, acquired_at, heartbeat_at, expires_at, canonical_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, String(owner), os.hostname(), token, acquiredAt, acquiredAt, expiresAt, canonicalJson({id, owner, host: os.hostname(), token, acquiredAt, expiresAt}));
+        .run(id, String(owner), os.hostname(), token, acquiredAt, acquiredAt, expiresAt, canonicalJson({id, owner, host: os.hostname(), token, fencingToken: token, acquiredAt, heartbeatAt: acquiredAt, expiresAt}));
     });
-    return await callback({id, token, acquiredAt, expiresAt});
+    if (autoRenew) {
+      heartbeatTimer = setInterval(() => {
+        try {
+          renew();
+        } catch (error) {
+          leaseError = error;
+        }
+      }, renewIntervalMs);
+      heartbeatTimer.unref?.();
+    }
+    return await callback({
+      id,
+      token,
+      fencingToken: token,
+      acquiredAt,
+      get expiresAt() { return expiresAt; },
+      renew,
+      assertHeld,
+    });
   } finally {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     try {
       if (db) {
         withTransaction(db, () => {

@@ -12,12 +12,13 @@ function classify(error) {
 }
 
 export class Pipeline {
-  constructor({repository, config, newsroom, reviewEngine, radarEngine, backup, now = () => new Date().toISOString()}) {
+  constructor({repository, config, newsroom, reviewEngine, radarEngine, publicationEligibility, backup, now = () => new Date().toISOString()}) {
     this.repository = repository;
     this.config = config;
     this.newsroom = newsroom;
     this.reviewEngine = reviewEngine;
     this.radarEngine = radarEngine;
+    this.publicationEligibility = publicationEligibility;
     this.backup = backup;
     this.now = now;
   }
@@ -44,8 +45,8 @@ export class Pipeline {
     appendEvent(state, {at: this.now(), type, severity, runId: run.id, jobId: job?.id || null, message, details}, this.config);
   }
 
-  async runSelection(state, run, {persist, provider = 'mock', model = 'mock-sintetico', freeTierConfirmed = false, fixture = null, writeTransport = null, reviewTransport = null} = {}) {
-    const remaining = Math.max(0, this.config.maxArticlesPerDay - jobsToday(state));
+  async runSelection(state, run, {persist, maxArticles = this.config.maxArticlesPerDay, provider = 'mock', model = 'mock-sintetico', freeTierConfirmed = false, fixture = null, writeTransport = null, reviewTransport = null} = {}) {
+    const remaining = Math.max(0, Math.min(maxArticles, this.config.maxArticlesPerDay - jobsToday(state)));
     if (!remaining) {
       this._event(state, run, null, 'pipeline', 'warning', 'Limite diário de matérias atingido.');
       run.summary = {selected: 0, remaining: 0, reason: 'DAILY_ARTICLE_LIMIT'};
@@ -53,13 +54,23 @@ export class Pipeline {
     }
     const plan = this.newsroom.plan({limit: remaining});
     const selected = plan.selected.slice(0, remaining);
-    run.summary = {selected: selected.length, remaining, jobs: []};
+    run.summary = {
+      selected: selected.length,
+      remaining,
+      decisions: (plan.decisions || []).map(({id, topic, category, eligible, reasons, editorialScore, trendsScore}) => ({
+        id, topic, category, eligible, reasons, editorialScore, trendsScore,
+      })),
+      jobs: [],
+    };
     if (!selected.length) {
       this._event(state, run, null, 'pipeline', 'info', 'Nenhuma pauta elegível.');
       return run;
     }
     for (const candidate of selected) {
-      const job = {
+      const reusable = [...state.jobs].reverse().find((entry) => entry.topicId === candidate.id
+        && entry.status === 'blocked'
+        && ['CREDENTIALS', 'AI_DISABLED', 'FREE_TIER_UNCONFIRMED', 'RATE_LIMIT', 'BUDGET', 'REVIEW_BUDGET', 'DETERMINISTIC_BLOCKED', 'REVIEW_BLOCKED'].includes(entry.error?.code));
+      const job = reusable || {
         id: this.repository.newId('job'),
         runId: run.id,
         topicId: candidate.id,
@@ -73,8 +84,22 @@ export class Pipeline {
         result: null,
         error: null,
       };
-      state.jobs.push(job);
-      this._event(state, run, job, 'pipeline', 'info', 'Pauta selecionada.');
+      if (reusable) {
+        job.retryHistory = [...(job.retryHistory || []), {at: this.now(), priorError: job.error, reason: 'Retomada após bloqueio conhecido antes de chamada externa.'}];
+        job.runId = run.id;
+        job.status = 'queued';
+        job.stage = 'planned';
+        job.attempts = 0;
+        job.error = null;
+        job.result = null;
+        job.updatedAt = this.now();
+      }
+      if (!reusable) state.jobs.push(job);
+      this._event(state, run, job, 'pipeline', 'info', 'Pauta selecionada.', {
+        editorialScore: candidate.editorialScore,
+        trendsScore: candidate.trendsScore,
+        reasons: candidate.reasons,
+      });
       persist();
       try {
         if (!this.config.ai.enabled) {
@@ -106,21 +131,33 @@ export class Pipeline {
         }
         persist();
 
-        this._step(state, job, 'write', 'running');
-        persist();
-        await this.newsroom.write(candidate.id, {
-          provider,
-          model,
-          freeTierConfirmed,
-          transport: writeTransport || undefined,
-          fixture: fixture || undefined,
-          retryReason: 'Execução do orquestrador editorial.',
-        });
-        this._step(state, job, 'write', 'completed');
+        record = this.newsroom.show(candidate.id);
+        if (!record.draft) {
+          this._step(state, job, 'write', 'running');
+          persist();
+          await this.newsroom.write(candidate.id, {
+            provider,
+            model,
+            freeTierConfirmed,
+            transport: writeTransport || undefined,
+            fixture: fixture || undefined,
+            retryReason: 'Execução do orquestrador editorial.',
+          });
+          this._step(state, job, 'write', 'completed');
+        } else {
+          this._step(state, job, 'write', 'completed', {resumed: true, attemptId: record.ai?.attemptId || null});
+        }
         persist();
 
-        this._step(state, job, 'verify', 'running');
-        const verification = await this.newsroom.verify(candidate.id);
+        record = this.newsroom.show(candidate.id);
+        let verification;
+        if (record.verification?.valid) {
+          verification = {id: candidate.id, status: record.status, verification: record.verification};
+          this._step(state, job, 'verify', 'completed', {...verification.verification, resumed: true});
+        } else {
+          this._step(state, job, 'verify', 'running');
+          verification = await this.newsroom.verify(candidate.id);
+        }
         this._step(state, job, 'verify', verification.verification.valid ? 'completed' : 'blocked', verification.verification);
         persist();
         if (!verification.verification.valid) {
@@ -148,9 +185,30 @@ export class Pipeline {
         this._step(state, job, 'import', 'running');
         const imported = await this.newsroom.importDraft(candidate.id);
         this._step(state, job, 'import', 'completed', {editorialId: imported.editorialId, imageStatus: imported.imageStatus});
+        this._step(state, job, 'eligibility', 'running');
+        const eligibility = this.publicationEligibility
+          ? this.publicationEligibility(candidate.id)
+          : {status: 'unknown', eligible: false, errors: [{code: 'ELIGIBILITY_NOT_CONFIGURED'}]};
+        const eligibilityBlocked = !['awaiting-human-approval', 'eligible', 'already-published'].includes(eligibility.status);
+        this._step(state, job, 'eligibility', eligibilityBlocked ? 'blocked' : 'completed', {
+          status: eligibility.status,
+          eligible: eligibility.eligible,
+          errors: eligibility.errors?.map((item) => item.code) || [],
+        });
+        if (eligibilityBlocked) {
+          const error = Object.assign(new Error('Política de elegibilidade bloqueou a publicação.'), {code: 'ELIGIBILITY_BLOCKED'});
+          error.details = eligibility.errors;
+          throw error;
+        }
         job.status = 'completed';
         job.stage = 'completed';
-        job.result = {editorialId: imported.editorialId, imageStatus: imported.imageStatus, review: review.review.result};
+        job.result = {
+          editorialId: imported.editorialId,
+          imageStatus: imported.imageStatus,
+          review: review.review.result,
+          eligibility: eligibility.status,
+          eligibleForPublication: eligibility.eligible,
+        };
         job.updatedAt = this.now();
         this._event(state, run, job, 'pipeline', 'info', 'Rascunho privado importado.', job.result);
         run.summary.jobs.push({id: job.id, topicId: job.topicId, status: job.status, result: job.result});
@@ -169,14 +227,15 @@ export class Pipeline {
   }
 
   async runRadar(state, run, {persist} = {}) {
-    this._step(state, {id: null, stage: 'radar'}, 'radar', 'running');
     const result = await this.radarEngine.fetch({dryRun: false});
     run.summary = {
+      radarRunId: result.id || null,
       signals: result.signals,
       newTopics: result.newTopics,
       observedTopics: result.observedTopics,
       uniqueTopics: result.uniqueTopics,
     };
+    run.radarRunId = result.id || null;
     this._event(state, run, null, 'radar', 'info', 'Coleta do radar concluída.', run.summary);
     persist();
     return run;
