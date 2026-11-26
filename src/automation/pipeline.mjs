@@ -7,7 +7,7 @@ function utcDay() {
 function classify(error) {
   const code = String(error?.code || 'ERROR');
   if (['BUDGET', 'RATE_LIMIT', 'REVIEW_BUDGET', 'BUDGET_EXHAUSTED'].includes(code)) return 'deferred';
-  if (['AI_DISABLED', 'FREE_TIER_UNCONFIRMED', 'PAID_BLOCKED', 'CREDENTIALS', 'DETERMINISTIC_BLOCKED', 'REVIEW_CONTRACT', 'REVIEW_TOO_LARGE', 'REVIEW_BLOCKED', 'RESEARCH_INSUFFICIENT', 'MODEL_INSUFFICIENT', 'BLOCKED'].includes(code)) return 'blocked';
+  if (['AI_DISABLED', 'FREE_TIER_UNCONFIRMED', 'PAID_BLOCKED', 'CREDENTIALS', 'DETERMINISTIC_BLOCKED', 'REVIEW_CONTRACT', 'REVIEW_TOO_LARGE', 'REVIEW_BLOCKED', 'RESEARCH_INSUFFICIENT', 'MODEL_INSUFFICIENT', 'ELIGIBILITY_BLOCKED', 'BLOCKED'].includes(code)) return 'blocked';
   return 'failed';
 }
 
@@ -196,6 +196,13 @@ export class Pipeline {
           errors: eligibility.errors?.map((item) => item.code) || [],
         });
         if (eligibilityBlocked) {
+          job.result = {
+            editorialId: imported.editorialId,
+            imageStatus: imported.imageStatus,
+            review: review.review.result,
+            eligibility: eligibility.status,
+            eligibleForPublication: eligibility.eligible,
+          };
           const error = Object.assign(new Error('Política de elegibilidade bloqueou a publicação.'), {code: 'ELIGIBILITY_BLOCKED'});
           error.details = eligibility.errors;
           throw error;
