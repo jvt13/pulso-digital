@@ -8,6 +8,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { Repository, filesUnder, atomicWrite, jsonBytes } from '../../src/editorial/repository.mjs';
 import { EditorialEngine } from '../../src/editorial/engine.mjs';
 import { validate, safeUrl } from '../../src/editorial/validator.mjs';
+import { createPrivatePreview } from '../../src/editorial/preview.mjs';
 import { hash, checkSchema } from '../../src/editorial/schema.mjs';
 import { titleSimilarity, normalizeUrl } from '../../src/editorial/deduplication.mjs';
 
@@ -129,6 +130,22 @@ test('dry-run executa build isolado sem efeitos persistentes e fixtures são blo
   const env=sandbox(t),id=approve(env),before=snapshot(env.repo);const plan=env.engine.publish(id,{dryRun:true});
   assert.equal(plan.expected.articles,9);assert.equal(plan.expected.htmlPages,20);assert.ok(plan.files.includes('content/articles.json'));assert.deepEqual(snapshot(env.repo),before);assert.equal(env.repo.get(id).state,'approved');
   env.repo.config.allowSyntheticPublication=false;expectCode(()=>env.engine.publish(id),'SYNTHETIC_PUBLICATION');
+});
+
+test('prévia privada usa layout real sem aprovar, publicar ou alterar public',t=>{
+  const env=sandbox(t),id=env.engine.import(input(env.repo)).input.id;
+  env.engine.validate(id);
+  const before=publicSnapshot(env.repo),target=path.join(env.root,'reports','evidence','latest','preview');
+  const result=createPrivatePreview(env.repo,id,{target,now:now()});
+  assert.equal(result.approved,false);
+  assert.equal(result.publicationPerformed,false);
+  assert.equal(result.articles,9);
+  assert.equal(result.htmlPages,20);
+  assert(fs.existsSync(path.join(target,result.articleHtml)));
+  assert.match(fs.readFileSync(path.join(target,result.articleHtml),'utf8'),/Prévia privada para revisão humana/);
+  assert.doesNotMatch(fs.readFileSync(path.join(target,result.articleHtml),'utf8'),/aprovação editorial explícita/);
+  assert.deepEqual(publicSnapshot(env.repo),before);
+  assert.equal(env.repo.get(id).state,'validated');
 });
 test('ciclo completo, publicação válida, isolamento privado e repetição idempotente',t=>{
   const env=sandbox(t),id=approve(env);const result=env.engine.publish(id);assert.equal(result.expected.articles,9);

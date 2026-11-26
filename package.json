@@ -1,17 +1,18 @@
 {
   "name": "pulso-digital",
-  "version": "1.4.9",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node src/build.mjs",
     "start": "node src/server.mjs",
     "editorial": "node src/editorial/cli.mjs",
-    "test": "node --test --test-reporter=tap src/test.mjs tests/editorial/engine.test.mjs tests/radar/radar.test.mjs tests/radar/refinement.test.mjs tests/newsroom/newsroom.test.mjs tests/newsroom/review-context.test.mjs tests/storage/storage.test.mjs tests/automation/automation.test.mjs",
+    "test": "node --test --test-reporter=tap src/test.mjs tests/editorial/engine.test.mjs tests/editorial/publication-policy.test.mjs tests/radar/radar.test.mjs tests/radar/refinement.test.mjs tests/newsroom/newsroom.test.mjs tests/newsroom/review-context.test.mjs tests/reports/maintenance.test.mjs tests/storage/storage.test.mjs tests/automation/automation.test.mjs",
     "radar": "node src/radar/cli.mjs",
     "newsroom": "node src/newsroom/cli.mjs",
     "storage": "node src/storage/cli.mjs",
-    "automation": "node src/automation/cli.mjs"
+    "automation": "node src/automation/cli.mjs",
+    "reports": "node src/reports/cli.mjs"
   },
   "engines": {
     "node": ">=24"

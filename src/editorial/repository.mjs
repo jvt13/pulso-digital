@@ -56,6 +56,13 @@ export class Repository {
     this.lock = confined(this.root, 'editorial/data/lock');
     this.journal = confined(this.root, 'editorial/data/transaction.json');
     ensure(this.config.schemaVersion === '1.0' && this.config.limits.inputBytes > 0 && this.config.limits.inputBytes <= 1048576 && this.config.limits.assetBytes <= 10485760 && this.config.limits.stateBytes <= 16777216 && this.config.limits.stagedBytes <= 104857600, 'CONFIG', 'Limites de configuração inválidos.');
+    const policy = this.config.publicationPolicy;
+    ensure(policy?.schemaVersion === '1.0' && ['manual', 'assisted', 'autonomous-controlled'].includes(policy.mode) && policy.autonomousSimulationOnly === true && typeof policy.emergencyPause === 'boolean', 'CONFIG', 'Política de publicação inválida.');
+    ensure(policy.limits?.maxArticlesPerDay === 3 && Number.isInteger(policy.limits.maxArticlesPerDay), 'CONFIG', 'Limite diário de publicação inválido.');
+    ensure(Number.isInteger(policy.limits.minIntervalMinutes) && policy.limits.minIntervalMinutes >= 0 && policy.limits.minIntervalMinutes <= 1440, 'CONFIG', 'Intervalo mínimo de publicação inválido.');
+    ensure(Number.isInteger(policy.limits.maxPerCategoryPerDay) && policy.limits.maxPerCategoryPerDay > 0 && policy.limits.maxPerCategoryPerDay <= 3, 'CONFIG', 'Limite por categoria inválido.');
+    ensure(Number.isInteger(policy.limits.maxContentAgeHours) && policy.limits.maxContentAgeHours > 0 && policy.limits.maxContentAgeHours <= 720, 'CONFIG', 'Atualidade mínima inválida.');
+    ensure(Number.isInteger(policy.limits.maxConsecutiveFailures) && policy.limits.maxConsecutiveFailures > 0 && policy.limits.maxConsecutiveFailures <= 10, 'CONFIG', 'Circuit breaker inválido.');
     ensure(Object.values(this.config.limits).every(n=>Number.isInteger(n)&&n>0)&&typeof this.config.allowSyntheticPublication==='boolean'&&this.config.deduplication.titleSimilarity>0&&this.config.deduplication.titleSimilarity<=1&&Number.isInteger(this.config.deduplication.recommendedSources)&&this.config.deduplication.recommendedSources>0,'CONFIG','Configuração editorial inválida.');
   }
   file(relative) { return confined(this.root, relative); }

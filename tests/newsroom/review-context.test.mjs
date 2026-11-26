@@ -4,6 +4,7 @@ import {buildEvidenceContexts} from '../../src/newsroom/review/evidence-context.
 import {buildReviewContext, reviewConfiguration} from '../../src/newsroom/review/policy.mjs';
 import {reviewContentFingerprint} from '../../src/newsroom/review/hash.mjs';
 import {effectiveResult} from '../../src/newsroom/review/findings.mjs';
+import {reviewTopicCallLimit, validateReviewTopicLimits} from '../../src/newsroom/review/limits.mjs';
 import {
   auditMechanicalCorrections,
   correctAttributedQuoteFromFinding,
@@ -194,4 +195,20 @@ test('review context: promoção histórica insegura é detectada e mitigada', (
   assert.equal(after.unsafePromotions.length, 0);
   assert.equal(after.historicalUnsafePromotions.length, 1);
   assert.equal(after.historicalUnsafePromotions[0].mitigated, true);
+});
+
+test('review context: limite por pauta usa exceção explícita e mantém padrão conservador', () => {
+  const config = {
+    maxCallsPerTopic: 2,
+    topicOverrides: [{
+      topicId: 'pauta-3dedca70b915b39080e052f1',
+      maxCalls: 4,
+      taskId: 'PD-006.6.1',
+      reason: 'Exceção histórica para correção de transmissão de contexto.',
+    }],
+  };
+  assert.equal(reviewTopicCallLimit(config, 'pauta-3dedca70b915b39080e052f1'), 4);
+  assert.equal(reviewTopicCallLimit(config, 'pauta-000000000000000000000000'), 2);
+  assert.doesNotThrow(() => validateReviewTopicLimits(config));
+  assert.throws(() => validateReviewTopicLimits({...config, topicOverrides: [...config.topicOverrides, ...config.topicOverrides]}), {code: 'CONFIG'});
 });

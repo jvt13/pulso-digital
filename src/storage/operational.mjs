@@ -397,6 +397,43 @@ export function deleteOperationalRecord(root, id, {key = null, config = loadOper
   }
 }
 
+export function recordOperationalEvent(root, {action, namespace = null, entityId = null, details = {}, key = null, config = loadOperationalConfig(root)} = {}) {
+  const loadedKey = loadKey(root, key);
+  check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
+  check(typeof action === 'string' && action.length > 0, 'OPERATIONAL_EVENT', 'Ação do evento obrigatória.');
+  let db;
+  try {
+    db = openOperational(root, config, loadedKey, {readonly: false});
+    return withTransaction(db, () => {
+      const at = new Date().toISOString();
+      const result = db.prepare('INSERT INTO operational_events (at, action, namespace, entity_id, details_json) VALUES (?, ?, ?, ?, ?)')
+        .run(at, action, namespace, entityId, canonicalJson(details));
+      return {id: Number(result.lastInsertRowid), at, action, namespace, entityId};
+    });
+  } finally {
+    closeQuietly(db);
+  }
+}
+
+export function readOperationalEvents(root, {action = null, entityId = null, limit = 100, key = null, config = loadOperationalConfig(root)} = {}) {
+  const loadedKey = loadKey(root, key);
+  check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
+  check(Number.isInteger(limit) && limit > 0 && limit <= 1000, 'OPERATIONAL_EVENT', 'Limite de eventos inválido.');
+  let db;
+  try {
+    db = openOperational(root, config, loadedKey, {readonly: true});
+    const where = [];
+    const params = [];
+    if (action) { where.push('action = ?'); params.push(action); }
+    if (entityId) { where.push('entity_id = ?'); params.push(entityId); }
+    const rows = db.prepare(`SELECT id, at, action, namespace, entity_id, details_json FROM operational_events
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT ?`).all(...params, limit);
+    return rows.map((row) => ({id: row.id, at: row.at, action: row.action, namespace: row.namespace, entityId: row.entity_id, details: JSON.parse(row.details_json)}));
+  } finally {
+    closeQuietly(db);
+  }
+}
+
 export function syncOperationalAssets(root, relativeDirectory, {key = null, config = loadOperationalConfig(root)} = {}) {
   if (!operationalActive(root, config)) return {synced: 0, active: false};
   const base = path.resolve(root, relativeDirectory);

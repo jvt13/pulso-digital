@@ -4,6 +4,7 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import {check,file,readJson,atomicWrite,jsonBytes,hash} from './common.mjs';
 import {operationalActive,readOperationalStateWithHash,writeOperationalState} from '../storage/operational.mjs';
+import {validateReviewTopicLimits} from './review/limits.mjs';
 
 export class NewsroomRepository {
   constructor(root,{now=()=>new Date().toISOString()}={}){
@@ -11,6 +12,7 @@ export class NewsroomRepository {
     check(readJson(file(this.root,'package.json')).name==='pulso-digital','ROOT','Raiz inválida.');
     this.config=readJson(file(this.root,'newsroom/config.json'));
     const c=this.config;
+    validateReviewTopicLimits(c.review);
     check(c.schemaVersion==='1.0'&&c.paidProvidersEnabled===false&&c.maxMonthlySpendUsd===0&&c.maxTopicsPerRun>0&&c.maxTopicsPerRun<=3&&c.maxConcurrentAiRequests===1&&c.maxAiCallsPerTopic>0&&c.maxAiCallsPerTopic<=3&&c.maxDailyTokens===50000&&c.maxInputTokens>0&&c.maxOutputTokens>0&&c.maxTokensPerMinute>0&&c.maxInputTokens+c.maxOutputTokens<=c.maxTokensPerMinute&&c.maxTokensPerMinute<=8000&&c.minAiIntervalMs>=60000&&Array.isArray(c.research.allowedHosts)&&c.research.allowedHosts.length>0,'CONFIG','Configuração de segurança/orçamento inválida.');
     const review=c.review||{},reasoning=c.reasoning||{},thinkingLevels=['minimal','low','medium','high'];
     check(c.models?.gemini&&c.draftTransportVersion==='2.0'&&['low','medium','high'].includes(reasoning.groq)&&thinkingLevels.includes(reasoning.gemini)&&review.schemaVersion==='1.0'&&review.provider==='gemini'&&review.model===c.models.gemini&&review.paidProvidersEnabled===false&&review.maxCallsPerTask>0&&review.maxCallsPerTask<=3&&review.maxCallsPerTopic>0&&review.maxCallsPerTopic<=4&&review.maxTokensPerTask>0&&review.maxTokensPerTask<=15000&&review.maxInputTokens>0&&review.maxOutputTokens>0&&review.maxInputTokens+review.maxOutputTokens<=review.maxTokensPerMinute&&review.maxTokensPerMinute<=8000&&review.minAiIntervalMs>=60000&&Number.isInteger(review.maxEvidenceChars)&&review.maxEvidenceChars>=800&&review.maxEvidenceChars<=8000&&thinkingLevels.includes(review.thinkingLevel)&&review.preflightReserveTokens>0&&review.preflightReserveTokens<=c.maxDailyTokens&&review.maxFindings>0&&review.maxFindings<=20,'CONFIG','Configuração de revisão inválida.');

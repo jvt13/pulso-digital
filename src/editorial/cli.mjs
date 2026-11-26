@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { Repository } from './repository.mjs';
 import { EditorialEngine } from './engine.mjs';
 import { ensure } from './schema.mjs';
+import { createPrivatePreview } from './preview.mjs';
 
 const HELP=`Motor editorial Pulso Digital — contrato 1.0
 Uso: npm run editorial -- COMANDO [ID/arquivo] [opções]
@@ -33,7 +34,7 @@ Importar/validar não publica. Aprovar depende da revisão factual e dos direito
 export function main(argv=process.argv.slice(2)) {
   const args=[],options={};
   const booleans=new Set(['json','dry-run','facts-reviewed','image-rights-reviewed','acknowledge-warnings','break-lock']);
-  const values=new Set(['root','reviewer','reason']);
+  const values=new Set(['root','reviewer','reason','target']);
   try {
     for(let i=0;i<argv.length;i++){
       if(argv[i].startsWith('--')){
@@ -45,12 +46,12 @@ export function main(argv=process.argv.slice(2)) {
       }else args.push(argv[i]);
     }
     const [command='help',id,file]=args;
-    const commandOptions={approve:['reviewer','facts-reviewed','image-rights-reviewed','acknowledge-warnings','reason'],reject:['reason'],draft:['reason'],revise:['reason'],publish:['dry-run'],recover:['break-lock','reason']};
+    const commandOptions={approve:['reviewer','facts-reviewed','image-rights-reviewed','acknowledge-warnings','reason'],reject:['reason'],draft:['reason'],revise:['reason'],publish:['dry-run'],preview:['target'],recover:['break-lock','reason']};
     ensure(Object.keys(options).every(key=>['root','json',...(commandOptions[command]||[])].includes(key)),'CLI_OPTION','Opção não aplicável ao comando; --dry-run só se aplica a publish.');
     if(command==='help'){console.log(options.json?JSON.stringify({ok:true,help:HELP}):HELP);return 0;}
     const root=options.root||path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
     const repo=new Repository(root),engine=new EditorialEngine(repo);
-    const needsId=['import','show','validate','approve','reject','draft','revise','publish','history'];
+    const needsId=['import','show','validate','approve','reject','draft','revise','publish','preview','history'];
     ensure(!needsId.includes(command)||id,'CLI_ARGUMENT','Informe o identificador ou arquivo.');
     ensure(args.length <= (command==='revise'?3:needsId.includes(command)?2:1),'CLI_ARGUMENT','Argumentos extras não são permitidos.');
     let result;
@@ -65,6 +66,7 @@ export function main(argv=process.argv.slice(2)) {
       case 'draft':result=engine.draft(id,options.reason);break;
       case 'revise':ensure(file,'CLI_ARGUMENT','Informe o JSON revisado.');result=engine.revise(id,file,options.reason);break;
       case 'publish':result=engine.publish(id,{dryRun:!!options['dry-run']});break;
+      case 'preview':ensure(options.target,'CLI_ARGUMENT','Informe --target.');result=createPrivatePreview(repo,id,{target:options.target});break;
       case 'recover':result=engine.recover({breakLock:!!options['break-lock'],reason:options.reason});break;
       case 'status':result={schemaVersion:repo.config.schemaVersion,counts:fs.existsSync(repo.lock)||fs.existsSync(repo.journal)?null:repo.list().reduce((a,r)=>(a[r.state]=(a[r.state]||0)+1,a),{}),locked:fs.existsSync(repo.lock),recoveryRequired:fs.existsSync(repo.journal),automaticApproval:false,automaticDeploy:false};break;
       default:ensure(false,'CLI_COMMAND','Comando desconhecido; execute help.');

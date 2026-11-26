@@ -18,6 +18,7 @@ repair-classification ID [--reason TEXTO]
 repair-review-finding ID --finding-id ID [--reason TEXTO]
 audit-corrections ID
 harden-historical-corrections ID [--reason TEXTO]
+policy ID [--mode manual|assisted|autonomous-controlled]
 enrich ID [--reason TEXTO]
 revise ID --file JSON --reason TEXTO
 review ID [--provider gemini] [--dry-run] [--confirm-free-tier]
@@ -50,15 +51,16 @@ const commandOptions={
   'repair-review-finding':['finding-id','reason'],
   'audit-corrections':[],
   'harden-historical-corrections':['reason'],
+  policy:['mode'],
   review:['provider','dry-run','confirm-free-tier','help'],
   'review-status':[],
   'review-history':[],
   run:['limit','dry-run','confirm-free-tier'],
   recover:['reason'],
 };
-const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','eligibility','repair-classification','repair-review-finding','audit-corrections','harden-historical-corrections','review','review-status','review-history']);
+const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','eligibility','repair-classification','repair-review-finding','audit-corrections','harden-historical-corrections','policy','review','review-status','review-history']);
 const booleans=new Set(['json','dry-run','confirm-free-tier','help']);
-const globalValues=new Set(['root','limit','url','provider','reason','file','finding-id']);
+const globalValues=new Set(['root','limit','url','provider','reason','file','finding-id','mode']);
 
 export async function main(argv=process.argv.slice(2)){
   const opts={},args=[];
@@ -122,6 +124,7 @@ export async function main(argv=process.argv.slice(2)){
         break;
       case 'audit-corrections':result=engine.auditCorrections(id);break;
       case 'harden-historical-corrections':result=await engine.hardenHistoricalCorrections(id,{reason:opts.reason||'Auditoria da PD-006.6.1: fonte única não confirma independentemente um fato.'});break;
+      case 'policy':result=engine.publicationPolicy(id,{mode:opts.mode});break;
       case 'review':{
         if(opts.help){result={help:'Use review ID [--provider gemini] [--dry-run] [--confirm-free-tier]. O resultado é privado e vinculado ao hash do conteúdo.'};break;}
         result=await reviewEngine.review(id,{provider:opts.provider,freeTierConfirmed:!!opts['confirm-free-tier'],dryRun:!!opts['dry-run']});break;

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "reportsDirectory": "reports",
+  "essentialPaths": [
+    "report.md",
+    "project-status.md",
+    "checkpoint.md",
+    "cleanup-manifest.json"
+  ],
+  "pendingPrefixes": [
+    "evidence/latest/",
+    "evidence/pending/"
+  ],
+  "tempSuffixes": [
+    ".tmp",
+    ".part"
+  ],
+  "reproducibleSuffixes": [
+    ".log",
+    ".tap"
+  ],
+  "reproduciblePrefixes": [
+    "pages-artifact/",
+    "pd002-lighthouse-before/",
+    "pd002-lighthouse-after/",
+    "pd0061-restore-"
+  ],
+  "obsoleteTaskPattern": "^pd[0-9]+",
+  "archiveDirectory": "storage/archive/reports",
+  "removableCategories": [
+    "duplicate",
+    "reproducible",
+    "obsolete"
+  ]
+}

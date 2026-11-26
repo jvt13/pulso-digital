@@ -1,4 +1,4 @@
-reports/
+/reports/
 node_modules/
 *.log
 .env
@@ -11,3 +11,4 @@ editorial/data/
 radar/data/
 newsroom/data/
 storage/data/
+/storage/archive/

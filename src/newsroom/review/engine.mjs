@@ -8,6 +8,7 @@ import {evaluateEditorialQuality} from '../quality.mjs';
 import {buildReviewContext,reviewConfiguration} from './policy.mjs';
 import {validateReviewOutput} from './validator.mjs';
 import {REVIEW_SCHEMA_VERSION} from './schema.mjs';
+import {reviewTopicCallLimit} from './limits.mjs';
 
 function taskUsage(state,review){
   const entries=state.usage.filter(entry=>(entry.operation||'write')==='review'&&entry.taskId===review.taskId&&entry.provider===review.provider);
@@ -99,7 +100,7 @@ export class ReviewEngine {
           taskId:reviewConfig.taskId,
           maxOutputTokens:reviewConfig.maxOutputTokens,
           maxInputTokens:reviewConfig.maxInputTokens,
-          maxCallsPerTopic:reviewConfig.maxCallsPerTopic,
+          maxCallsPerTopic:reviewTopicCallLimit(reviewConfig,id),
         });
       }catch(caught){throw annotateAiError(caught,{provider:attemptedProvider,operation:'review'});}
       this.repo.save(state);

@@ -1,6 +1,19 @@
 {
   "schemaVersion": "1.0",
   "allowSyntheticPublication": false,
+  "publicationPolicy": {
+    "schemaVersion": "1.0",
+    "mode": "manual",
+    "autonomousSimulationOnly": true,
+    "emergencyPause": false,
+    "limits": {
+      "maxArticlesPerDay": 3,
+      "minIntervalMinutes": 60,
+      "maxPerCategoryPerDay": 1,
+      "maxContentAgeHours": 168,
+      "maxConsecutiveFailures": 3
+    }
+  },
   "limits": {
     "inputBytes": 262144,
     "stateBytes": 8388608,

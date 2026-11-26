@@ -24,7 +24,15 @@
     "promptVersion": "review-v1",
     "taskId": "PD-006.6.1",
     "maxCallsPerTask": 2,
-    "maxCallsPerTopic": 4,
+    "maxCallsPerTopic": 2,
+    "topicOverrides": [
+      {
+        "topicId": "pauta-3dedca70b915b39080e052f1",
+        "maxCalls": 4,
+        "taskId": "PD-006.6.1",
+        "reason": "Exceção histórica da homologação Kilonova Catcher após duas rejeições por contexto truncado."
+      }
+    ],
     "maxTokensPerTask": 15000,
     "maxInputTokens": 4000,
     "maxOutputTokens": 3000,

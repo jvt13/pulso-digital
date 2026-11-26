@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.9
+# Pulso Digital — v1.5.0
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -90,6 +90,22 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
 ## Automação editorial supervisionada
-O orquestrador da versão 1.4.8 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+O orquestrador da versão 1.5.0 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+
+### Publicação controlada
+
+- `manual` é o padrão e exige aprovação humana explícita.
+- `assisted` prepara e enfileira a matéria, sem publicar.
+- `autonomous-controlled` existe somente como avaliação simulada nesta versão.
+- Risco editorial, fonte única, rumores, citações extensas, direitos, qualidade, atualidade,
+  duplicidade, limites diários/categoria e circuit breaker são avaliados separadamente.
+- Nenhuma decisão automatizada é registrada como aprovação humana.
+- Critérios completos: [docs/publication-policy.md](docs/publication-policy.md).
+
+## Relatórios
+
+A estrutura e a retenção dos artefatos privados estão em
+[docs/report-retention.md](docs/report-retention.md). `project-status.md` é a visão
+consolidada; `report.md` descreve apenas a tarefa atual.
 
 Referências: https://support.google.com/trends/answer/3076011 ; https://support.google.com/adsense/answer/7299563 ; https://developers.google.com/search/docs/essentials/spam-policies

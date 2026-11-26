@@ -14,8 +14,12 @@ import {usageSummary} from './budget.mjs';
 import {describeEvidence} from './evidence-quality.mjs';
 import {evaluateEditorialQuality} from './quality.mjs';
 import {extractHtml} from './extractor.mjs';
-import {syncOperationalAssets} from '../storage/operational.mjs';
+import {recordOperationalEvent,syncOperationalAssets} from '../storage/operational.mjs';
 import {auditMechanicalCorrections,correctAttributedQuoteFromFinding,correctUnqualifiedRumorClaims,demoteUnsafeHistoricalPromotions} from './claims.mjs';
+import {evaluatePublicationEligibility} from './publication-eligibility.mjs';
+import {ReviewEngine} from './review/engine.mjs';
+import {validate as validateEditorial} from '../editorial/validator.mjs';
+import {classifyEditorialRisk,evaluateControlledPublication,publicationStats} from '../editorial/publication-policy.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -104,6 +108,7 @@ export class NewsroomEngine {
     this.repo.save(state);
     return {id,status:record.status,changes,verification};
   });}
+  publicationPolicy(id,{mode}={}){const record=this.show(id),editorialRepo=new EditorialRepository(this.repo.root),editorialRecord=editorialRepo.get(record.editorialId),validation=validateEditorial(editorialRepo,editorialRecord.input),eligibility=evaluatePublicationEligibility(this.repo,id),reviewStatus=new ReviewEngine(this.repo).status(id),review=(record.reviews||[]).find(item=>item.id===reviewStatus.latest?.id)||null,quality=evaluateEditorialQuality(record.draft,record.dossier,record.verification),selectedMode=mode||editorialRepo.config.publicationPolicy.mode;const dates=(record.dossier.sources||[]).map(source=>source.publishedAt||source.checkedAt).map(value=>Date.parse(value)).filter(Number.isFinite),ageHours=dates.length?Math.max(0,(Date.parse(this.repo.now())-Math.max(...dates))/3600000):null,stats={...publicationStats(editorialRepo,this.repo.now()),contentAgeHours:ageHours,duplicate:validation.errors.some(item=>item.code==='EXACT_DUPLICATE'||item.code==='SLUG_COLLISION')},risk=classifyEditorialRisk({draft:record.draft,dossier:record.dossier,review,eligibility,quality,validation}),decision=evaluateControlledPublication({mode:selectedMode,risk,eligibility,editorialRecord,draft:record.draft,config:editorialRepo.config.publicationPolicy,now:this.repo.now(),stats,contentHash:reviewStatus.contentHash,reviewId:reviewStatus.latest?.id||null});const event=recordOperationalEvent(this.repo.root,{action:'publication-policy-evaluation',namespace:'editorial',entityId:id,details:decision});return {...decision,eventId:event.id};}
   async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=ensurePreparedImage(this.repo.root,id,record,{now:this.repo.now()});record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status,automatic:!!prepared.automatic});this.repo.save(state);syncOperationalAssets(this.repo.root,`newsroom/data/images/${id}`);return {id,status:record.status,image:record.image,automatic:!!prepared.automatic};});}
   async importDraft(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid&&!record.synthetic,'STATE','Somente rascunho real verificado pode ser importado.');check(['image-pending','ready-to-import','imported'].includes(record.status),'STATE','Execute prepare-image antes da importação.');
     const editorialId=`newsroom-${id}`,editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
