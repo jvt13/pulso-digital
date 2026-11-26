@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import {check} from '../common.mjs';
 
 export const REVIEW_SCHEMA_VERSION='1.0';
-export const REVIEW_PROMPT_VERSION='review-v1';
+export const REVIEW_PROMPT_VERSION='review-v2';
 export const REVIEW_RESULTS=['pass','changes-required','research-required','human-review-required','blocked'];
 export const REVIEW_SEVERITIES=['critical','major','minor','informational'];
 export const REVIEW_CATEGORIES=['factual','evidence','attribution','translation','headline','independence','editorial-quality','privacy','injection','other'];

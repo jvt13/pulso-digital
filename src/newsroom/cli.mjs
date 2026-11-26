@@ -10,7 +10,7 @@ import {loadLocalEnv} from './env.mjs';
 const help=`Newsroom privado Pulso Digital
 Uso: npm run newsroom -- COMANDO [ID] [opções]
 help | status | providers | plan [--limit 3] | list | show ID | usage
-research ID [--url URL] | evidence ID | write ID [--provider groq|gemini]
+research ID [--url URL] | evidence ID | write ID [--provider groq|gemini] [--reason TEXTO]
 verify ID | prepare-image ID | import ID | quality ID
 enrich ID [--reason TEXTO]
 revise ID --file JSON --reason TEXTO
@@ -32,7 +32,7 @@ const commandOptions={
   usage:[],
   research:['url','urls'],
   evidence:[],
-  write:['provider','confirm-free-tier'],
+  write:['provider','confirm-free-tier','reason'],
   verify:[],
   'prepare-image':[],
   import:[],
@@ -90,7 +90,7 @@ export async function main(argv=process.argv.slice(2)){
       case 'usage':result=engine.status().usage;break;
       case 'research':result=await engine.research(id,{extraUrls:opts.urls||[]});break;
       case 'evidence':result=engine.evidence(id);break;
-      case 'write':result=await engine.write(id,{provider:opts.provider||repo.config.provider,freeTierConfirmed:!!opts['confirm-free-tier']});break;
+      case 'write':result=await engine.write(id,{provider:opts.provider||repo.config.provider,freeTierConfirmed:!!opts['confirm-free-tier'],retryReason:opts.reason||null});break;
       case 'verify':result=await engine.verify(id);break;
       case 'prepare-image':result=await engine.prepareImage(id);break;
       case 'import':result=await engine.importDraft(id);break;
@@ -116,7 +116,7 @@ export async function main(argv=process.argv.slice(2)){
     console.log(opts.json?JSON.stringify({ok:true,result}):JSON.stringify(result,null,2));
     return 0;
   }catch(error){
-    const payload={ok:false,error:{code:error.code||'ERROR',message:error.message,...(error.details?{details:error.details}:{})}};
+    const payload={ok:false,error:{code:error.code||'ERROR',message:error.message,...(error.category?{category:error.category}:{}),...(error.recommendedAction?{recommendedAction:error.recommendedAction}:{}),...(error.details?{details:error.details}:{})}};
     console.error(opts.json?JSON.stringify(payload):`Erro [${payload.error.code}]: ${payload.error.message}`);
     if(/^(LOCK|IO|ENOENT|EACCES|STATE_LIMIT)/.test(payload.error.code))return 4;
     if(['CREDENTIALS','FREE_TIER_UNCONFIRMED','PAID_BLOCKED','REVISION_INVALID','QUALITY_BLOCKED'].includes(payload.error.code))return 3;

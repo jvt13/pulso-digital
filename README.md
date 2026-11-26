@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.4
+# Pulso Digital — v1.4.5
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -33,6 +33,8 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - `enrich`, `revise` e `quality` permitem atualizar evidências, revisar um rascunho sem trocar seu ID e consultar o score. Imagens próprias podem ser autorizadas no manifesto, mas elementos de terceiros exigem fundamento específico.
 - `review`, `review-status` e `review-history` permitem uma revisão semântica independente no Gemini, vinculada ao hash de texto, título, resumo, claims e evidências. O resultado é privado, não aprova e não publica.
 - Gemini usa `gemini-3.5-flash-lite` em modalidade gratuita, com orçamento separado por tarefa, sem grounding, ferramentas ou fallback pago.
+- A redação usa transporte compacto 2.0: claims não repetem o texto dos parágrafos, evidências usam aliases reversíveis e slug/categoria/classificação são reconstruídos localmente antes da validação. `reasoning_effort: low` é configurável e continua contabilizado na saída.
+- Erros de IA são classificados por tipo (schema, truncamento, JSON, timeout, limite, autenticação, falha transitória e orçamento) com ação recomendada; não há repetição automática. A pré-checagem exige saldo também para a revisão posterior.
 
 ## Armazenamento criptografado
 - `npm run storage -- help` apresenta checkpoint, verificação, métricas, restauração isolada e gestão de chave. Arquitetura e estratégia de nuvem: [storage/README.md](storage/README.md).

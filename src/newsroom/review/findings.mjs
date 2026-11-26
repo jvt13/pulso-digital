@@ -8,6 +8,14 @@ const ASSESSMENT_KEYS=['claimIndex','status','reason','evidenceIds'];
 
 function text(value,max=4000){return typeof value==='string'&&value.trim().length>0&&value.length<=max;}
 function contractError(message,details=null){const error=new NewsroomError('REVIEW_CONTRACT',message);error.details=details;throw error;}
+function mapEvidenceIds(values,context,label){
+  if(!Array.isArray(values))return values;
+  return values.map(id=>{
+    const real=context.aliasToEvidence?.get(id)||(context.evidenceIds.has(id)?id:null);
+    if(!real)contractError(`${label} referencia evidência inexistente.`,{id});
+    return real;
+  });
+}
 
 export function validateReviewItems(output,context,{maxFindings=12}={}){
   const errors=checkReviewShape(output);
@@ -24,13 +32,14 @@ export function validateReviewItems(output,context,{maxFindings=12}={}){
     if(!FIELDS.includes(finding.field))contractError('Localização inválida.',{index});
     for(const key of ['sectionIndex','paragraphIndex','claimIndex'])if(!Number.isInteger(finding[key]))contractError('Índice de localização inválido.',{index,key});
     if(!text(finding.message,2000)||!text(finding.justification,4000)||typeof finding.suggestion!=='string'||finding.suggestion.length>4000)contractError('Texto de achado inválido.',{index});
-    if(!Array.isArray(finding.evidenceIds)||finding.evidenceIds.some(id=>!evidenceIds.has(id)))contractError('Achado referencia evidência inexistente.',{index});
+    const findingEvidence=mapEvidenceIds(finding.evidenceIds,context,`Achado ${index}`);
+    if(!Array.isArray(findingEvidence)||findingEvidence.some(id=>!evidenceIds.has(id)))contractError('Achado referencia evidência inexistente.',{index});
     if(finding.claimIndex>=0){
       const allowed=context.claimEvidenceIds.get(finding.claimIndex);
-      if(!allowed||finding.evidenceIds.some(id=>!allowed.has(id)))contractError('Achado referencia evidência alheia ao claim.',{index});
+      if(!allowed||findingEvidence.some(id=>!allowed.has(id)))contractError('Achado referencia evidência alheia ao claim.',{index});
     }
     if(finding.field==='body'&&(finding.sectionIndex<0||finding.paragraphIndex<0||!context.sections?.[finding.sectionIndex]?.paragraphs?.[finding.paragraphIndex]))contractError('Achado aponta parágrafo inexistente.',{index});
-    return {...finding,evidenceIds:[...new Set(finding.evidenceIds)]};
+    return {...finding,evidenceIds:[...new Set(findingEvidence)]};
   });
   if(output.claimAssessments.length!==context.claims.length)contractError('A revisão deve classificar todos os claims.');
   const assessments=[],seenClaims=new Set();
@@ -41,9 +50,10 @@ export function validateReviewItems(output,context,{maxFindings=12}={}){
     seenClaims.add(assessment.claimIndex);
     if(!CLAIM_STATUSES.includes(assessment.status))contractError('Status de claim inválido.',{index});
     if(!text(assessment.reason,4000)||!Array.isArray(assessment.evidenceIds))contractError('Justificativa de claim inválida.',{index});
+    const assessmentEvidence=mapEvidenceIds(assessment.evidenceIds,context,`Avaliação ${index}`);
     const allowed=context.claimEvidenceIds.get(assessment.claimIndex);
-    if(assessment.evidenceIds.some(id=>!allowed?.has(id)))contractError('Avaliação referencia evidência alheia ao claim.',{index});
-    assessments.push({...assessment,evidenceIds:[...new Set(assessment.evidenceIds)]});
+    if(assessmentEvidence.some(id=>!allowed?.has(id)))contractError('Avaliação referencia evidência alheia ao claim.',{index});
+    assessments.push({...assessment,evidenceIds:[...new Set(assessmentEvidence)]});
   }
   assessments.sort((left,right)=>left.claimIndex-right.claimIndex);
   const autoFindings=[];
