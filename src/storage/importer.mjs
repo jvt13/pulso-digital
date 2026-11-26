@@ -1,12 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {check, canonicalJson, mediaTypeFor, safeRelativePath, sha256, toPosix} from './common.mjs';
+import {check, canonicalJson, isInside, mediaTypeFor, safeRelativePath, sha256, toPosix} from './common.mjs';
 import {queryMetrics, withTransaction} from './database.mjs';
 import {reviewContentFingerprint} from '../newsroom/review/hash.mjs';
+import {runtimeDataPath, runtimeDataRoot} from '../runtime/paths.mjs';
 
 const IMAGE_EXTENSIONS = new Set(['.webp', '.jpg', '.jpeg', '.png', '.svg']);
 const CONFIG_NAMES = new Set(['config.json', 'sources.json', 'package.json']);
 const CREDENTIAL_PATTERN = /(?:gsk_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{20,}|PULSO_STORAGE_KEY\s*=\s*[A-Za-z0-9_+/=-]{20,})/;
+
+function sourcePath(root, relative) {
+  return /^(?:radar|newsroom|editorial|storage)\/data(?:\/|$)/.test(relative)
+    ? runtimeDataPath(root, relative)
+    : path.join(root, relative);
+}
+
+function logicalRelative(root, absolute) {
+  if (isInside(root, absolute)) return safeRelativePath(toPosix(path.relative(root, absolute)));
+  const dataRoot = runtimeDataRoot(root);
+  check(isInside(dataRoot, absolute), 'SOURCE_PATH', 'Arquivo de origem fora das raízes autorizadas.');
+  return safeRelativePath(toPosix(path.relative(dataRoot, absolute)));
+}
 
 function categoryFor(relative) {
   if (CONFIG_NAMES.has(path.posix.basename(relative))) return 'configuration';
@@ -26,7 +40,7 @@ function excluded(relative, name, config) {
 }
 
 function assertSourceIdle(root, config) {
-  const active = config.sources.sourceLockPaths.filter((relative) => fs.existsSync(path.join(root, relative)));
+  const active = config.sources.sourceLockPaths.filter((relative) => fs.existsSync(sourcePath(root, relative)));
   check(active.length === 0, 'SOURCE_BUSY', `Há operação ativa nos dados de origem: ${active.join(', ')}.`);
 }
 
@@ -55,11 +69,11 @@ export function collectSourceFiles(root, config) {
   const projectRoot = path.resolve(root);
   assertSourceIdle(projectRoot, config);
   for (const required of config.sources.requiredFiles) {
-    check(fs.existsSync(path.join(projectRoot, required)), 'SOURCE_REQUIRED', `Arquivo obrigatório ausente: ${required}.`);
+    check(fs.existsSync(sourcePath(projectRoot, required)), 'SOURCE_REQUIRED', `Arquivo obrigatório ausente: ${required}.`);
   }
   const collected = new Map();
   function addFile(absolute) {
-    const relative = safeRelativePath(toPosix(path.relative(projectRoot, absolute)));
+    const relative = logicalRelative(projectRoot, absolute);
     if (collected.has(relative)) return;
     const name = path.basename(absolute);
     if (excluded(relative, name, config)) return;
@@ -78,9 +92,9 @@ export function collectSourceFiles(root, config) {
     }
     if (stat.isFile()) addFile(absolute);
   }
-  for (const relative of config.sources.directories) walk(path.join(projectRoot, relative));
+  for (const relative of config.sources.directories) walk(sourcePath(projectRoot, relative));
   for (const relative of config.sources.files) {
-    const absolute = path.join(projectRoot, relative);
+    const absolute = sourcePath(projectRoot, relative);
     if (fs.existsSync(absolute)) addFile(absolute);
   }
   const files = [...collected.values()].sort((left, right) => left.path.localeCompare(right.path));

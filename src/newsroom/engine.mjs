@@ -20,6 +20,7 @@ import {evaluatePublicationEligibility} from './publication-eligibility.mjs';
 import {ReviewEngine} from './review/engine.mjs';
 import {validate as validateEditorial} from '../editorial/validator.mjs';
 import {classifyEditorialRisk,evaluateControlledPublication,publicationStats} from '../editorial/publication-policy.mjs';
+import {runtimeDataPath} from '../runtime/paths.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -114,7 +115,7 @@ export class NewsroomEngine {
     const editorialId=`newsroom-${id}`,editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
     if(editorialRepo.exists(editorialId)){const existing=editorialRepo.get(editorialId),topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),expected=editorialInput(topic,record.draft,record.dossier,prepared.ready?prepared.image:null);check(hash(existing.input)===hash(expected),'IMPORT_CONFLICT','Rascunho editorial existente difere; revisão controlada necessária.');record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(expected);this.repo.save(state);return {id,status:'imported',editorialId,alreadyImported:true};}
     const prepared=inspectImage(this.repo.root,id),image=prepared.ready?stageImage(this.repo.root,id,prepared):null;
-    const topic=this.radarTopic(id),input=editorialInput(topic,record.draft,record.dossier,image),relative=`editorial/data/incoming/${editorialId}.json`,target=file(this.repo.root,relative),bytes=jsonBytes(input);
+    const topic=this.radarTopic(id),input=editorialInput(topic,record.draft,record.dossier,image),relative=`editorial/data/incoming/${editorialId}.json`,target=runtimeDataPath(this.repo.root,relative),bytes=jsonBytes(input);
     if(fs.existsSync(target))check(fs.readFileSync(target).equals(bytes),'IMPORT_CONFLICT','Incoming existente difere; não sobrescrever.');else atomicWrite(target,bytes);
     const imported=editorialEngine.import(relative);check(imported.state==='draft','IMPORT','Motor editorial não retornou estado draft.');
     record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(input);record.imageStatus=prepared.status;record.history.push({at:this.repo.now(),action:'import',editorialId,imageStatus:prepared.status});this.repo.save(state);syncOperationalAssets(this.repo.root,`editorial/data/incoming/newsroom-${id}`);
@@ -172,7 +173,7 @@ export class NewsroomEngine {
     const input=editorialInput(topic,draft,record.dossier,image),editorialId=record.editorialId;
     const editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
     check(editorialRepo.exists(editorialId),'NOT_FOUND','Registro editorial não encontrado.');
-    const relative=`editorial/data/incoming/${editorialId}-revision-${Date.now()}.json`,target=file(this.repo.root,relative),bytes=jsonBytes(input);
+    const relative=`editorial/data/incoming/${editorialId}-revision-${Date.now()}.json`,target=runtimeDataPath(this.repo.root,relative),bytes=jsonBytes(input);
     atomicWrite(target,bytes);
     const revised=editorialEngine.revise(editorialId,relative,reason);
     check(revised.state==='draft','REVISION','Motor editorial não retornou draft.');

@@ -1,3 +1,4 @@
 User-agent: *
-Allow: /
+Disallow: /
+# Pré-lançamento: indexação desativada pelo ambiente.
 Sitemap: https://jvt13.github.io/pulso-digital/sitemap.xml

@@ -27,10 +27,16 @@ jobs:
           node-version: '24'
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Install locked XML parser
-        run: npm ci --ignore-scripts
+      - name: Install locked dependencies
+        run: npm ci
       - name: Generate static pages
         run: npm run build
+      - name: Build isolated environments
+        run: npm run build:all
+      - name: Validate environment artifacts
+        run: |
+          npm run verify:homologation
+          npm run verify:production
       - name: Validate generated site
         run: npm test
       - name: Upload public directory only

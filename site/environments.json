@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "default": "homologation",
+  "environments": {
+    "homologation": {
+      "siteUrl": "https://jvt13.github.io/pulso-digital",
+      "basePath": "/pulso-digital/",
+      "output": "public",
+      "indexing": false,
+      "prelaunch": true,
+      "adsense": false,
+      "aiCalls": false,
+      "operationalPublishing": false
+    },
+    "production": {
+      "siteUrl": "https://pulsobit.tech",
+      "basePath": "/",
+      "output": "dist/production",
+      "indexing": false,
+      "prelaunch": true,
+      "adsense": false,
+      "aiCalls": false,
+      "operationalPublishing": false
+    }
+  }
+}

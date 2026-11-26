@@ -1,10 +1,15 @@
-# Pulso Digital — v1.5.1
-Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
+# PulsoBit — v1.5.2
+
+Portal editorial em português com 8 matérias públicas, 5 editorias e busca. O nome
+técnico e o repositório continuam `pulso-digital`; a marca pública é **PulsoBit** e o
+domínio de produção é `https://pulsobit.tech`.
 
 ## Executar
 - Para visualizar sem instalar nada, abra `public/index.html` no navegador após extrair o ZIP. Links e busca funcionam localmente.
 - Para executar via HTTP (Node.js 24+): `npm start`, depois http://localhost:8080.
-- Para regenerar páginas: `npm run build`. Para testar: `npm test`. Execute antes `npm ci --ignore-scripts` para instalar o parser XML fixado do radar.
+- Para regenerar páginas: `npm run build`. Para testar: `npm test`. Execute antes `npm ci` para instalar o parser XML e o módulo SQLite fixados no lockfile.
+- Builds independentes: `npm run build:homologation` e `npm run build:production`, com verificação por `npm run verify:homologation` e `npm run verify:production`.
+- Ambientes, base path e indexação ficam em `site/environments.json`. Produção permanece em pré-lançamento com `noindex` até autorização explícita do operador.
 - Hospedagem: publique **somente** a pasta `public/` em hospedagem estática. O servidor incluído é apenas para desenvolvimento local.
 
 ## Motor editorial local
@@ -62,14 +67,22 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
   evidência, integridade e aprovação, mas não aprova nem publica.
 - A migration v5 adiciona `automation_schedules`, `automation_runs`, `automation_jobs`, `automation_steps`, `automation_events` e `automation_control`; use `npm run storage -- upgrade` para aplicar migrations ao banco operacional ativo.
 
+## Ambientes e implantação
+
+- Homologação: GitHub Pages em `/pulso-digital/`, publicidade e indexação desativadas.
+- Produção: domínio principal `https://pulsobit.tech/`, servido futuramente por Nginx; não configure domínio próprio no GitHub Pages.
+- Runbook seguro: [docs/vps-deployment.md](docs/vps-deployment.md).
+- Persistência externa, migração, atualização e rollback: [docs/runtime-storage.md](docs/runtime-storage.md).
+- Exemplos de systemd e Nginx: `deploy/systemd/` e `deploy/nginx/`.
+
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital
 - Portal: https://jvt13.github.io/pulso-digital/
 - O workflow `.github/workflows/pages.yml` executa a geração existente e os testes com Node.js 24 antes de publicar exclusivamente `public/`. É acionado por push em `main` ou manualmente em Actions.
 - A origem de publicação em Settings → Pages deve ser **GitHub Actions**. Não há domínio personalizado nem publicidade ativa.
-- `config.json` contém a URL real, incluindo `/pulso-digital`, usada pelo gerador em canonical, Open Graph, NewsArticle, sitemap, RSS e robots.txt. CSS, JavaScript, imagens e navegação usam caminhos relativos.
+- `site/environments.json` define URL, base path, saída, indexação e limites de cada ambiente. O build de homologação injeta `https://jvt13.github.io/pulso-digital`; o de produção injeta `https://pulsobit.tech`. CSS, JavaScript, imagens e navegação usam caminhos relativos.
 - Relatórios e capturas operacionais ficam em `reports/`, ignorada pelo Git e fora do artefato publicado. Playwright foi usado apenas na homologação, sem adicionar dependências ao projeto.
-- O `robots.txt` deste projeto é servido em `/pulso-digital/robots.txt`; regras para todo o host dependem do arquivo na raiz de `jvt13.github.io`. O sitemap está disponível em `/pulso-digital/sitemap.xml`.
+- O `robots.txt` de homologação fica em `/pulso-digital/robots.txt` e o sitemap em `/pulso-digital/sitemap.xml`. Ambos os ambientes permanecem com indexação desativada nesta versão.
 
 ## Configuração antes da publicação
 ### Padrão editorial e imagens
@@ -81,8 +94,8 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - A presença de metadados e imagens grandes não garante indexação ou inclusão no Discover. Lighthouse mede condições de laboratório; resultados e evidências operacionais ficam em `reports/`, fora do Git e do portal.
 
 ### Antes da operação comercial
-1. Em `config.json`, defina `siteUrl` (URL HTTPS real, sem barra no fim) e `contactEmail`. Revise identificação do responsável, textos institucionais e privacidade conforme a operação real.
-2. Execute `npm run build`. Isso gera canonical, Open Graph, Twitter Cards, NewsArticle, breadcrumbs, RSS e sitemap com a URL verdadeira. O registro de imagens fornece WebP responsivo e JPEG para compartilhamento, com créditos e fundamento de uso. Uma eventual submissão do sitemap ao Search Console exige tarefa própria; ela não foi realizada nesta entrega.
+1. Confirme `site/environments.json`, `contactEmail` e os textos institucionais. Não inclua responsável, endereço ou CNPJ inventados.
+2. Execute `npm run build:production` e `npm run verify:production`. O gerador produz canonical, Open Graph, Twitter Cards, Organization, WebSite, NewsArticle, breadcrumbs, RSS e sitemap com o domínio oficial. A indexação continua desativada até autorização explícita.
 3. As oito matérias foram revisadas documentalmente na PD-002. Mantenha a conferência de fontes, datas e condições de uso a cada revisão, registrando alterações relevantes. Não há garantia de indexação ou de inclusão no Discover.
 4. Após aprovação e implementação de privacidade/consentimento conforme aplicável, informe o `client` real (ca-pub-...), os IDs numéricos `home`, `article`, `articleEnd` e altere `enabled` para true. Recompile. Não habilite sem política de privacidade adequada e gestão de consentimento; esta versão NÃO inclui CMP, Analytics ou anúncios ativos. Publique o ads.txt fornecido pela conta AdSense no diretório public.
 
@@ -90,7 +103,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
 ## Automação editorial supervisionada
-O orquestrador da versão 1.5.1 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+O orquestrador da versão 1.5.2 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
 
 ### Publicação controlada
 

@@ -14,6 +14,7 @@ import {
   sha256File,
   toPosix,
 } from './common.mjs';
+import {runtimeDataPath, runtimeDataRoot} from '../runtime/paths.mjs';
 import {
   closeQuietly,
   integrityCheck,
@@ -45,7 +46,7 @@ function compactTimestamp(iso) {
 }
 
 function readLegacyJson(root, relative, required = true) {
-  const file = path.join(root, relative);
+  const file = runtimeDataPath(root, relative);
   if (!fs.existsSync(file)) {
     check(!required, 'SOURCE_REQUIRED', `Arquivo legado ausente: ${relative}.`);
     return null;
@@ -54,7 +55,7 @@ function readLegacyJson(root, relative, required = true) {
 }
 
 function walkFiles(root, relativeDirectory) {
-  const base = path.join(root, relativeDirectory);
+  const base = runtimeDataPath(root, relativeDirectory);
   if (!fs.existsSync(base)) return [];
   const result = [];
   const walk = (directory) => {
@@ -71,7 +72,7 @@ function walkFiles(root, relativeDirectory) {
 }
 
 function legacyEditorialRecords(root) {
-  const directory = path.join(root, 'editorial/data/records');
+  const directory = runtimeDataPath(root, 'editorial/data/records');
   if (!fs.existsSync(directory)) return [];
   return fs.readdirSync(directory)
     .filter((name) => /^[a-z0-9-]+\.json$/.test(name))
@@ -84,11 +85,12 @@ function legacyEditorialRecords(root) {
 }
 
 function legacyAssets(root) {
+  const dataRoot = runtimeDataRoot(root);
   return [...walkFiles(root, 'newsroom/data/images'), ...walkFiles(root, 'editorial/data/incoming')]
     .map((absolute) => {
       const content = fs.readFileSync(absolute);
       return {
-        path: safeRelativePath(toPosix(path.relative(root, absolute))),
+        path: safeRelativePath(toPosix(path.relative(dataRoot, absolute))),
         bytes: content.length,
         sha256: sha256(content),
         content,
@@ -223,8 +225,8 @@ export function readMigrationReceipt(root, key, {required = false} = {}) {
 }
 
 function pendingPath(root, receipt) {
-  const absolute = path.resolve(root, receipt.pendingDatabase);
-  check(isInside(path.join(root, 'storage/data'), absolute), 'PATH_INVALID', 'Banco pendente fora de storage/data.');
+  const absolute = runtimeDataPath(root, receipt.pendingDatabase);
+  check(isInside(runtimeDataPath(root, 'storage/data'), absolute), 'PATH_INVALID', 'Banco pendente fora de storage/data.');
   return absolute;
 }
 

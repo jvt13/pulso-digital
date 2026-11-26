@@ -25,6 +25,7 @@ import {collectSourceFiles, importSnapshot} from './importer.mjs';
 import {encryptedHeaderCheck, readSnapshotManifest, withManifestSignature} from './integrity.mjs';
 import {loadStorageKey} from './env.mjs';
 import {collectOperationalSources, loadOperationalConfig, operationalActive} from './operational.mjs';
+import {runtimeDataPath} from '../runtime/paths.mjs';
 
 export function loadProjectConfig(root) {
   const packageJson = readJson(path.join(root, 'package.json'), 65536);
@@ -45,7 +46,7 @@ function newSnapshotId(createdAt) {
 }
 
 function snapshotRoot(root, config) {
-  return path.join(root, config.paths.snapshots);
+  return runtimeDataPath(root, config.paths.snapshots);
 }
 
 function assertManagedSnapshotPath(root, config, candidate) {
@@ -53,7 +54,7 @@ function assertManagedSnapshotPath(root, config, candidate) {
 }
 
 export function withStorageLock(root, config, callback) {
-  const lock = path.join(root, config.paths.lock);
+  const lock = runtimeDataPath(root, config.paths.lock);
   ensureDirectory(path.dirname(lock));
   try {
     fs.mkdirSync(lock);
@@ -85,7 +86,7 @@ export function withStorageLock(root, config, callback) {
 
 export function recoverStorageLock(root, config, reason) {
   check(typeof reason === 'string' && reason.trim().length >= 5, 'REASON_REQUIRED', 'Informe justificativa de recuperação.');
-  const lock = path.join(root, config.paths.lock);
+  const lock = runtimeDataPath(root, config.paths.lock);
   if (!fs.existsSync(lock)) return {recovered: false};
   const ownerFile = path.join(lock, 'owner.json');
   const owner = fs.existsSync(ownerFile) ? readJson(ownerFile, 65536) : null;
@@ -95,9 +96,9 @@ export function recoverStorageLock(root, config, reason) {
     try { process.kill(owner.pid, 0); } catch (error) { if (error.code === 'ESRCH') alive = false; }
     check(!alive, 'LOCK_BUSY', 'O processo proprietário ainda está ativo; lock preservado.');
   }
-  ensureDirectory(path.join(root, config.paths.data));
+  ensureDirectory(runtimeDataPath(root, config.paths.data));
   atomicWrite(
-    path.join(root, config.paths.data, `recovery-${crypto.randomUUID()}.json`),
+    runtimeDataPath(root, `${config.paths.data}/recovery-${crypto.randomUUID()}.json`),
     jsonBytes({owner, reason, at: new Date().toISOString()}),
   );
   if (fs.existsSync(ownerFile)) fs.unlinkSync(ownerFile);
@@ -281,7 +282,7 @@ export function snapshotRetentionPlan(items, config, {protectedIds = []} = {}) {
 }
 
 export function planSnapshotRetention(root, config, {protectedIds = []} = {}) {
-  const markerFile = path.join(root, config.paths.data, config.operational?.markerFilename || 'operational.json');
+  const markerFile = runtimeDataPath(root, `${config.paths.data}/${config.operational?.markerFilename || 'operational.json'}`);
   const marker = fs.existsSync(markerFile) ? readJson(markerFile, 65536) : null;
   const markerProtected = [marker?.backupSnapshotId].filter(Boolean);
   return snapshotRetentionPlan(listSnapshots(root, config), config, {

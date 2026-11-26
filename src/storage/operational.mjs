@@ -18,6 +18,7 @@ import {loadStorageKey, storageKeyFingerprint} from './env.mjs';
 import {encryptedHeaderCheck, verifyManifestSignature, withManifestSignature} from './integrity.mjs';
 import {collectSourceFiles} from './importer.mjs';
 import {projectOperationalDatabase} from './operational-projector.mjs';
+import {runtimeDataPath, runtimeDataRoot} from '../runtime/paths.mjs';
 
 export const OPERATIONAL_FORMAT = 'pulso-digital-operational-backend';
 export const OPERATIONAL_FORMAT_VERSION = '1.0';
@@ -36,7 +37,7 @@ export function loadOperationalConfig(root) {
 }
 
 export function operationalPaths(root, config = loadOperationalConfig(root)) {
-  const data = path.join(root, 'storage/data');
+  const data = runtimeDataPath(root, 'storage/data');
   return {
     data,
     database: path.join(data, config.filename),
@@ -436,8 +437,9 @@ export function readOperationalEvents(root, {action = null, entityId = null, lim
 
 export function syncOperationalAssets(root, relativeDirectory, {key = null, config = loadOperationalConfig(root)} = {}) {
   if (!operationalActive(root, config)) return {synced: 0, active: false};
-  const base = path.resolve(root, relativeDirectory);
-  check(base === root || base.startsWith(root + path.sep), 'PATH_INVALID', 'Diretório de assets fora da raiz.');
+  const runtimeRoot = runtimeDataRoot(root);
+  const base = runtimeDataPath(root, relativeDirectory);
+  check(base === runtimeRoot || base.startsWith(runtimeRoot + path.sep), 'PATH_INVALID', 'Diretório de assets fora da raiz de runtime.');
   if (!fs.existsSync(base)) return {synced: 0, active: true};
   const files = [];
   const walk = (directory) => {

@@ -4,10 +4,13 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {dimensions} from '../editorial/image.mjs';
 import {safeUrl,validDate} from '../editorial/validator.mjs';
-import {check,file,readJson,atomicWrite} from './common.mjs';
+import {check,confined,readJson,atomicWrite} from './common.mjs';
+import {runtimeDataRoot} from '../runtime/paths.mjs';
+import {pythonExecutable} from '../runtime/python.mjs';
 
 export function inspectImage(root,topicId){
-  const base=`newsroom/data/images/${topicId}`,manifestPath=file(root,base+'/manifest.json');
+  const dataRoot=runtimeDataRoot(root);
+  const base=`newsroom/data/images/${topicId}`,manifestPath=confined(dataRoot,base+'/manifest.json');
   if(!fs.existsSync(manifestPath))return {ready:false,status:'image-pending',reason:'Nenhum manifesto de imagem autorizado foi preparado.'};
   const manifest=readJson(manifestPath);
   for(const field of ['kind','credit','sourceUrl','license','licenseUrl','authorizationBasis','alt','caption'])check(typeof manifest[field]==='string'&&manifest[field].trim(),'IMAGE_MANIFEST',`Campo ${field} ausente.`);
@@ -22,16 +25,16 @@ export function inspectImage(root,topicId){
   }
   if(manifest.kind==='illustration')check(/ilustra/i.test(manifest.alt)&&/ilustra/i.test(manifest.caption),'IMAGE_LABEL','Ilustração deve ser identificada.');
   const spec=[['main.webp',1600,900],['small.webp',640,360],['share.jpg',1600,900]],assets=[];
-  if(spec.some(([name])=>!fs.existsSync(file(root,base+'/'+name)))){
-    const originals=['original.jpg','original.jpeg','original.png','original.webp'].filter(name=>fs.existsSync(file(root,base+'/'+name)));
+  if(spec.some(([name])=>!fs.existsSync(confined(dataRoot,base+'/'+name)))){
+    const originals=['original.jpg','original.jpeg','original.png','original.webp'].filter(name=>fs.existsSync(confined(dataRoot,base+'/'+name)));
     if(!originals.length)return {ready:false,status:'image-pending',reason:'Manifesto presente, mas original/variantes ainda não preparados.'};
     check(originals.length===1,'IMAGE_SOURCE','Informe exatamente um arquivo original.');
-    const source=file(root,base+'/'+originals[0]),stat=fs.lstatSync(source);check(stat.isFile()&&!stat.isSymbolicLink()&&stat.size<=10485760,'IMAGE_SOURCE','Original inválido ou acima de 10 MiB.');
+    const source=confined(dataRoot,base+'/'+originals[0]),stat=fs.lstatSync(source);check(stat.isFile()&&!stat.isSymbolicLink()&&stat.size<=10485760,'IMAGE_SOURCE','Original inválido ou acima de 10 MiB.');
     const script=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../newsroom/tools/convert_image.py');
-    const conversion=spawnSync('python',[script,source,file(root,base)],{shell:false,timeout:30000,encoding:'utf8',windowsHide:true,maxBuffer:4096});
+    const conversion=spawnSync(pythonExecutable(),[script,source,confined(dataRoot,base)],{shell:false,timeout:30000,encoding:'utf8',windowsHide:true,maxBuffer:4096});
     check(!conversion.error&&conversion.status===0,'IMAGE_CONVERSION','Conversão local indisponível ou imagem pequena/incompatível; instale Pillow localmente e confira o original.');
   }
-  for(const [name,w,h] of spec){const relative=base+'/'+name,p=file(root,relative),stat=fs.lstatSync(p);check(stat.isFile()&&!stat.isSymbolicLink()&&stat.size<=5242880,'IMAGE_FILE','Imagem não regular ou acima do limite.');const bytes=fs.readFileSync(p),ext=name.endsWith('webp')?'webp':'jpg';check(ext==='webp'?bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP':bytes[0]===255&&bytes[1]===216,'IMAGE_FILE','Cabeçalho de imagem inválido.');const dim=dimensions(bytes,ext);check(dim.width===w&&dim.height===h,'IMAGE_DIMENSIONS','Dimensões esperadas não atendidas; não amplie bitmap pequeno.');assets.push({name,relative,width:w,height:h,bytes:stat.size});}
+  for(const [name,w,h] of spec){const relative=base+'/'+name,p=confined(dataRoot,relative),stat=fs.lstatSync(p);check(stat.isFile()&&!stat.isSymbolicLink()&&stat.size<=5242880,'IMAGE_FILE','Imagem não regular ou acima do limite.');const bytes=fs.readFileSync(p),ext=name.endsWith('webp')?'webp':'jpg';check(ext==='webp'?bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP':bytes[0]===255&&bytes[1]===216,'IMAGE_FILE','Cabeçalho de imagem inválido.');const dim=dimensions(bytes,ext);check(dim.width===w&&dim.height===h,'IMAGE_DIMENSIONS','Dimensões esperadas não atendidas; não amplie bitmap pequeno.');assets.push({name,relative,width:w,height:h,bytes:stat.size});}
   const key=`newsroom-${topicId}`,dest=`assets/editorial/${key}/`;
   const files=Object.fromEntries(assets.map(a=>[a.name,{path:dest+a.name,width:a.width,height:a.height,bytes:a.bytes}]));
   const record={kind:manifest.kind,credit:manifest.credit,sourceUrl:manifest.sourceUrl,license:manifest.license,licenseUrl:manifest.licenseUrl,alt:manifest.alt,caption:manifest.caption,src:files['main.webp'].path,smallSrc:files['small.webp'].path,shareSrc:files['share.jpg'].path,width:1600,height:900,previewAllowed:!!manifest.previewAllowed,checkedAt:manifest.checkedAt,files};
@@ -40,7 +43,7 @@ export function inspectImage(root,topicId){
 }
 export function stageImage(root,topicId,prepared){
   check(prepared.ready,'IMAGE_PENDING','Imagem ainda não autorizada.');
-  const key=`newsroom-${topicId}`;
-  for(const asset of prepared.assets){const target=file(root,`editorial/data/incoming/${key}/${asset.name}`),bytes=fs.readFileSync(file(root,asset.relative));if(fs.existsSync(target))check(fs.readFileSync(target).equals(bytes),'IMAGE_CONFLICT','Asset incoming difere; não sobrescrever.');else atomicWrite(target,bytes);}
+  const key=`newsroom-${topicId}`,dataRoot=runtimeDataRoot(root);
+  for(const asset of prepared.assets){const target=confined(dataRoot,`editorial/data/incoming/${key}/${asset.name}`),bytes=fs.readFileSync(confined(dataRoot,asset.relative));if(fs.existsSync(target))check(fs.readFileSync(target).equals(bytes),'IMAGE_CONFLICT','Asset incoming difere; não sobrescrever.');else atomicWrite(target,bytes);}
   return prepared.image;
 }

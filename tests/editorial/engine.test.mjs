@@ -17,7 +17,7 @@ const fixture=JSON.parse(fs.readFileSync(path.join(sourceRoot,'editorial/fixture
 const now=()=>new Date().toISOString();
 function sandbox(t,{fault,allowSynthetic=true}={}){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'pd003-test-'));
-  for(const relative of ['src','public','content','editorial','package.json','config.json'])fs.cpSync(path.join(sourceRoot,relative),path.join(root,relative),{recursive:true,filter:p=>!p.startsWith(path.join(sourceRoot,'editorial','data'))});
+  for(const relative of ['src','public','content','editorial','site','brand','package.json','config.json'])fs.cpSync(path.join(sourceRoot,relative),path.join(root,relative),{recursive:true,filter:p=>!p.startsWith(path.join(sourceRoot,'editorial','data'))});
   const configFile=path.join(root,'editorial/config.json');const config=JSON.parse(fs.readFileSync(configFile));config.allowSyntheticPublication=allowSynthetic;fs.writeFileSync(configFile,JSON.stringify(config));
   t.after(()=>{assert.ok(root.startsWith(path.join(os.tmpdir(),'pd003-test-')));fs.rmSync(root,{recursive:true,force:true});});
   const repo=new Repository(root,{fault,now});return {root,repo,engine:new EditorialEngine(repo)};

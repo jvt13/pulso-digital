@@ -34,6 +34,8 @@ export function publicArticle(input, target, now, {policyAuthorized = false} = {
 
 export function verifyOutput(stage, expectedArticles) {
   const articles = JSON.parse(fs.readFileSync(confined(stage,'content/articles.json'),'utf8'));
+  const siteConfig = JSON.parse(fs.readFileSync(confined(stage,'config.json'),'utf8'));
+  const publicBrand = siteConfig.publicName || siteConfig.name;
   ensure(articles.length === expectedArticles && new Set(articles.map(a=>a.slug)).size === articles.length, 'OUTPUT_INTEGRITY', 'Quantidade ou slugs divergentes na saída preparada.');
   const index = fs.readFileSync(confined(stage,'public/index.html'),'utf8');
   const rss = fs.readFileSync(confined(stage,'public/rss.xml'),'utf8');
@@ -43,7 +45,7 @@ export function verifyOutput(stage, expectedArticles) {
     const page = confined(stage,`public/noticias/${a.slug}.html`);
     ensure(fs.existsSync(page), 'OUTPUT_INTEGRITY', 'Página de matéria ausente.');
     ensure(fs.existsSync(confined(stage,`public/categorias/${a.category}.html`)), 'OUTPUT_INTEGRITY', 'Página de categoria ausente.');
-    ensure(index.includes('Pulso Digital') && rss.includes(`noticias/${a.slug}.html`) && sitemap.includes(`noticias/${a.slug}.html`), 'OUTPUT_INTEGRITY', 'Matéria não integrada à home, RSS ou sitemap.');
+    ensure(index.includes(publicBrand) && rss.includes(`noticias/${a.slug}.html`) && sitemap.includes(`noticias/${a.slug}.html`), 'OUTPUT_INTEGRITY', 'Matéria não integrada à home, RSS ou sitemap.');
     const articleHtml = fs.readFileSync(page,'utf8');
     ensure(/<link rel="canonical" href="https?:\/\//i.test(articleHtml), 'OUTPUT_SEO', 'Canonical ausente.');
     ensure(/<meta property="og:title"/i.test(articleHtml) && /<meta name="description" content="[^"]+"/i.test(articleHtml), 'OUTPUT_SEO', 'Metadados SEO obrigatórios ausentes.');
@@ -96,7 +98,7 @@ function prepare(repo, id, {allowPolicyAuthorization = false, policyContextHash 
 }
 
 function stagePublication(repo, plan, stage) {
-  for (const relative of ['config.json','package.json', 'src/build.mjs','src/art.mjs', ...filesUnder(repo.root,'public').map(f=>f.relative)]) {
+  for (const relative of ['config.json','package.json', 'src/build.mjs','src/art.mjs','src/site-config.mjs','src/runtime/paths.mjs', ...filesUnder(repo.root,'site').map(f=>f.relative), ...filesUnder(repo.root,'brand').map(f=>f.relative), ...filesUnder(repo.root,'public').map(f=>f.relative)]) {
     const source = repo.file(relative), dest = confined(stage,relative);
     fs.mkdirSync(path.dirname(dest),{recursive:true}); fs.copyFileSync(source,dest);
   }

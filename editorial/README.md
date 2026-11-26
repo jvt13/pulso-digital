@@ -22,7 +22,7 @@ O schema público está em `schemas/input-v1.schema.json` (JSON Schema 2020-12).
 
 O envelope de entrada contém `id`, `operation` (`create`/`update`), `targetSlug` para atualização, `synthetic`, `origin` (`manual`/`json`, com referência) e `article`. Uma pauta incompleta pode conter apenas título e continuar em draft; a validação para publicação exige o restante dos campos.
 
-`article` usa os campos existentes: `title`, `slug`, `summary`, `category`, `tags`, `sections` com títulos/parágrafos, `editorial`, `eventDate`/`eventLabel` quando relevantes e `sources`. Acrescenta `language: pt-BR`, `claims`, `image` e `changeNote` para atualização. A identificação atual é `Pulso Digital` / `Edição institucional provisória`; não são aceitos jornalistas inventados.
+`article` usa os campos existentes: `title`, `slug`, `summary`, `category`, `tags`, `sections` com títulos/parágrafos, `editorial`, `eventDate`/`eventLabel` quando relevantes e `sources`. Acrescenta `language: pt-BR`, `claims`, `image` e `changeNote` para atualização. Registros históricos conservam `Pulso Digital`; a projeção pública atual usa `PulsoBit` / `Edição institucional provisória`. Não são aceitos jornalistas inventados.
 
 Cada fonte declara `id`, nome, URL HTTP/HTTPS absoluta sem credenciais e `checkedAt` em `AAAA-MM-DD`. Data original e tipo podem ser informados. A consulta não é executada pelo motor. Datas de consulta futuras ou inexistentes são bloqueadas; uma data de publicação de fonte não pode ser posterior à consulta.
 

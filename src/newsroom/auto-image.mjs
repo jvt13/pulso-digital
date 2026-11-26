@@ -5,6 +5,8 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {atomicWrite, check, hash, file, jsonBytes, readJson} from './common.mjs';
 import {inspectImage} from './images.mjs';
+import {runtimeDataPath} from '../runtime/paths.mjs';
+import {pythonExecutable} from '../runtime/python.mjs';
 
 function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
@@ -17,15 +19,15 @@ function shortSubject(topic) {
 
 export function prepareAutomaticIllustration(root, topicId, record, {now = new Date().toISOString(), spawn = spawnSync} = {}) {
   const base = `newsroom/data/images/${topicId}`;
-  const manifestPath = file(root, `${base}/manifest.json`);
+  const manifestPath = runtimeDataPath(root, `${base}/manifest.json`);
   if (fs.existsSync(manifestPath)) return inspectImage(root, topicId);
-  const folder = file(root, base);
+  const folder = runtimeDataPath(root, base);
   fs.mkdirSync(folder, {recursive: true});
   const original = path.join(folder, 'original.png');
   check(!fs.existsSync(original), 'IMAGE_CONFLICT', 'Original de imagem já existe sem manifesto; não será sobrescrito.');
   const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../newsroom/tools/generate_illustration.py');
   const seed = Number.parseInt(hash(record.topic || topicId).slice(0, 8), 16);
-  const generated = spawn('python', [script, original, record.category || 'tendencias', String(seed)], {
+  const generated = spawn(pythonExecutable(), [script, original, record.category || 'tendencias', String(seed)], {
     shell: false,
     timeout: 30000,
     encoding: 'utf8',
@@ -72,7 +74,7 @@ export function prepareAutomaticIllustration(root, topicId, record, {now = new D
       width: asset.width,
       height: asset.height,
       bytes: asset.bytes,
-      sha256: sha256(fs.readFileSync(file(root, asset.relative))),
+      sha256: sha256(fs.readFileSync(runtimeDataPath(root, asset.relative))),
     })),
   };
   atomicWrite(manifestPath, jsonBytes(completeManifest));
@@ -83,7 +85,7 @@ export function prepareAutomaticIllustration(root, topicId, record, {now = new D
 export function ensurePreparedImage(root, topicId, record, options = {}) {
   const current = inspectImage(root, topicId);
   if (current.ready) return {...current, automatic: false};
-  const manifest = file(root, `newsroom/data/images/${topicId}/manifest.json`);
+  const manifest = runtimeDataPath(root, `newsroom/data/images/${topicId}/manifest.json`);
   if (fs.existsSync(manifest)) return current;
   return prepareAutomaticIllustration(root, topicId, record, options);
 }

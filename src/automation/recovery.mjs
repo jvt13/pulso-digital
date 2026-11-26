@@ -4,9 +4,10 @@ import {AutomationRepository} from './repository.mjs';
 import {appendEvent} from './state.mjs';
 import {Repository as EditorialRepository} from '../editorial/repository.mjs';
 import {readOperationalLease, readOperationalStateWithHash} from '../storage/operational.mjs';
+import {runtimeDataPath} from '../runtime/paths.mjs';
 
 export function inspectJournal(root) {
-  const file = path.join(root, 'editorial/data/transaction.json');
+  const file = runtimeDataPath(root, 'editorial/data/transaction.json');
   return {required: fs.existsSync(file), path: 'editorial/data/transaction.json'};
 }
 

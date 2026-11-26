@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Símbolo PulsoBit</title>
+  <defs>
+    <linearGradient id="pulse" x1="7" y1="8" x2="57" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8ed8ff"/>
+      <stop offset="0.52" stop-color="#2b9cff"/>
+      <stop offset="1" stop-color="#1464d8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="#0d1728"/>
+  <path d="M10 34h11l5-13 10 27 6-17 4-7h8" fill="none" stroke="url(#pulse)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10 34h8" fill="none" stroke="#f4f8ff" stroke-width="6" stroke-linecap="round"/>
+</svg>

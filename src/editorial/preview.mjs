@@ -31,7 +31,7 @@ export function createPrivatePreview(repository, id, {target, now = repository.n
     const previewImages = {...images, [record.input.article.image.key]: image.record};
     const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'pulso-preview-'));
     try {
-      for (const relative of ['config.json', 'package.json', 'src/build.mjs', 'src/art.mjs', ...filesUnder(repository.root, 'public').map((file) => file.relative)]) {
+      for (const relative of ['config.json', 'package.json', 'src/build.mjs', 'src/art.mjs', 'src/site-config.mjs', 'src/runtime/paths.mjs', ...filesUnder(repository.root, 'site').map((file) => file.relative), ...filesUnder(repository.root, 'brand').map((file) => file.relative), ...filesUnder(repository.root, 'public').map((file) => file.relative)]) {
         const destination = confined(stage, relative);
         fs.mkdirSync(path.dirname(destination), {recursive: true});
         fs.copyFileSync(repository.file(relative), destination);

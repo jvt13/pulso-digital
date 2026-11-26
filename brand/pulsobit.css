@@ -1,0 +1,64 @@
+:root {
+  --brand-pulse: #f4f8ff;
+  --brand-bit: #49adff;
+  --accent: #58b5ff;
+  --button: #196fca;
+}
+
+html[data-theme="light"] {
+  --brand-pulse: #111827;
+  --brand-bit: #126bd0;
+  --accent: #126bd0;
+  --button: #145fb7;
+}
+
+.brand {
+  gap: 11px;
+  letter-spacing: -1.35px;
+}
+
+.brand .brand-mark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(23 124 220 / 18%);
+}
+
+.brand .brand-word {
+  line-height: 1;
+}
+
+.brand .brand-pulse {
+  color: var(--brand-pulse);
+}
+
+.brand .brand-bit {
+  color: var(--brand-bit);
+}
+
+.brand small {
+  max-width: 150px;
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  .brand .brand-mark {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .hero-copy h1,
+  .hero-copy h2 {
+    overflow-wrap: anywhere;
+  }
+}

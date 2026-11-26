@@ -1,0 +1,96 @@
+# Instale como /etc/nginx/sites-available/pulsobit.tech.conf e habilite por symlink
+# somente após nginx -t. Este exemplo não foi aplicado à VPS.
+
+limit_req_zone $binary_remote_addr zone=pulsobit_static:10m rate=20r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name pulsobit.tech www.pulsobit.tech;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+    }
+
+    location / {
+        return 301 https://pulsobit.tech$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.pulsobit.tech;
+
+    ssl_certificate /etc/letsencrypt/live/pulsobit.tech/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pulsobit.tech/privkey.pem;
+    return 301 https://pulsobit.tech$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name pulsobit.tech;
+
+    root /var/www/pulso-digital;
+    index index.html;
+    charset utf-8;
+
+    ssl_certificate /etc/letsencrypt/live/pulsobit.tech/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pulsobit.tech/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:pulsobit_tls:10m;
+    ssl_session_timeout 1d;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+    limit_req zone=pulsobit_static burst=40 nodelay;
+
+    location = /robots.txt {
+        try_files $uri =404;
+        add_header Cache-Control "no-store" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location = /rss.xml {
+        try_files $uri =404;
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Type "application/rss+xml; charset=utf-8" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location = /sitemap.xml {
+        try_files $uri =404;
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Type "application/xml; charset=utf-8" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    location ~* \.(?:css|js|svg|webp|jpg|jpeg|png|ico|woff2?)$ {
+        try_files $uri =404;
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        access_log off;
+    }
+
+    location ~ (^|/)\. {
+        deny all;
+        return 404;
+    }
+
+    location ~* \.(?:sqlcipher|sqlite|db|sql|log|env|key|pem|p12|pfx|md|json)$ {
+        deny all;
+        return 404;
+    }
+
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+        add_header Cache-Control "no-store" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    }
+}

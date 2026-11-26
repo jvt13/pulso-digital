@@ -1,1 +1,16 @@
-{"name":"Pulso Digital","description":"O futuro em movimento: tecnologia, games, inteligência artificial, ciência e tendências.","siteUrl":"https://jvt13.github.io/pulso-digital","contactEmail":"","adsense":{"enabled":false,"client":"","slots":{"home":"","article":"","articleEnd":""}}}
+{
+  "name": "Pulso Digital",
+  "publicName": "PulsoBit",
+  "description": "O pulso da tecnologia: notícias, contexto e ideias sobre tecnologia, games, inteligência artificial, ciência e tendências.",
+  "siteUrl": "https://pulsobit.tech",
+  "contactEmail": "",
+  "adsense": {
+    "enabled": false,
+    "client": "",
+    "slots": {
+      "home": "",
+      "article": "",
+      "articleEnd": ""
+    }
+  }
+}

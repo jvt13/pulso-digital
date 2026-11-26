@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {runtimeDataPath} from '../runtime/paths.mjs';
 import {check, StorageError} from './common.mjs';
 import {generateStorageKey, loadStorageKey, writeStorageKey} from './env.mjs';
 import {verifySnapshot} from './integrity.mjs';
@@ -121,7 +122,7 @@ export async function main(argv = process.argv.slice(2)) {
           keyConfigured: Boolean(loaded),
           keySource: loaded?.source || null,
           keyFingerprint: loaded?.fingerprint || null,
-          storageLocked: fs.existsSync(path.join(root, config.paths.lock)),
+          storageLocked: fs.existsSync(runtimeDataPath(root, config.paths.lock)),
           sourceLocks,
           snapshotCount: snapshots.length,
           latest: snapshots[0] || null,
