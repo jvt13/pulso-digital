@@ -1,0 +1,24 @@
+[Unit]
+Description=Pulso Digital editorial automation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pulso
+Group=pulso
+WorkingDirectory=/srv/pulso-digital
+EnvironmentFile=/etc/pulso-digital/pulso.env
+ExecStart=/usr/bin/node src/automation/cli.mjs start --confirm-free-tier
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=90
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/pulso-digital/storage/data /srv/pulso-digital/radar/data /srv/pulso-digital/newsroom/data /srv/pulso-digital/editorial/data
+
+[Install]
+WantedBy=multi-user.target

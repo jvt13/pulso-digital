@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
 import {
   StorageError,
   canonicalJson,
@@ -45,6 +47,10 @@ export function operationalPaths(root, config = loadOperationalConfig(root)) {
 
 export function operationalActive(root, config = loadOperationalConfig(root)) {
   return fs.existsSync(operationalPaths(root, config).marker);
+}
+
+export function operationalDatabaseExists(root, config = loadOperationalConfig(root)) {
+  return fs.existsSync(operationalPaths(root, config).database);
 }
 
 export function readOperationalMarker(root, config = loadOperationalConfig(root), {key = null, verify = true} = {}) {
@@ -226,6 +232,36 @@ export function writeOperationalState(root, namespace, state, {expectedHash = nu
   }
 }
 
+export async function withOperationalLease(root, {id, ttlMs = 900000, owner = process.pid, key = null, config = loadOperationalConfig(root)} = {}, callback) {
+  const loadedKey = loadKey(root, key);
+  check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
+  check(typeof id === 'string' && id.length > 0 && Number.isInteger(ttlMs) && ttlMs > 0, 'LEASE', 'Lease inválida.');
+  let db;
+  const token = crypto.randomUUID();
+  const acquiredAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  try {
+    db = openOperational(root, config, loadedKey, {readonly: false});
+    withTransaction(db, () => {
+      const current = db.prepare('SELECT token, expires_at FROM leases WHERE id = ?').get(id);
+      if (current && Date.parse(current.expires_at) > Date.now()) throw new StorageError('LEASE_BUSY', 'Outro processo possui lease ativa.');
+      if (current) db.prepare('DELETE FROM leases WHERE id = ?').run(id);
+      db.prepare('INSERT INTO leases (id, owner, host, token, acquired_at, heartbeat_at, expires_at, canonical_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, String(owner), os.hostname(), token, acquiredAt, acquiredAt, expiresAt, canonicalJson({id, owner, host: os.hostname(), token, acquiredAt, expiresAt}));
+    });
+    return await callback({id, token, acquiredAt, expiresAt});
+  } finally {
+    try {
+      if (db) {
+        withTransaction(db, () => {
+          db.prepare('DELETE FROM leases WHERE id = ? AND token = ?').run(id, token);
+        });
+      }
+    } catch {}
+    closeQuietly(db);
+  }
+}
+
 export function readOperationalRecords(root, {key = null, config = loadOperationalConfig(root)} = {}) {
   const loadedKey = loadKey(root, key);
   check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
@@ -371,7 +407,9 @@ export function verifyOperationalDatabase(root, {key = null, config = loadOperat
   check(marker, 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
   const paths = operationalPaths(root, config);
   const stat = fs.lstatSync(paths.database);
-  check(stat.isFile() && !stat.isSymbolicLink() && sha256(fs.readFileSync(paths.database)) === marker.databaseSha256, 'TAMPERED', 'Banco operacional diverge do marcador.');
+  check(stat.isFile() && !stat.isSymbolicLink(), 'TAMPERED', 'Banco operacional ausente ou inválido.');
+  const actualDatabaseSha256 = sha256(fs.readFileSync(paths.database));
+  const databaseHashChanged = actualDatabaseSha256 !== marker.databaseSha256;
   const header = encryptedHeaderCheck(paths.database);
   check(!header.plainSqliteHeader, 'PLAINTEXT_DATABASE', 'Banco operacional não está criptografado.');
   let db;
@@ -386,6 +424,8 @@ export function verifyOperationalDatabase(root, {key = null, config = loadOperat
       authenticated: true,
       integrity,
       marker,
+      databaseSha256: actualDatabaseSha256,
+      databaseHashChanged,
       encryption: {plainSqliteHeader: false, headerPrefix: header.headerPrefix},
       schemaVersion: Number(db.pragma('user_version', {simple: true})),
       states,
@@ -429,7 +469,7 @@ export function collectOperationalSources(root, config, key, {readonly = true} =
     });
     const files = [...filtered];
     for (const [namespace, row] of Object.entries(states)) {
-      const category = namespace === 'radar' ? 'radar' : 'newsroom';
+      const category = ['radar', 'newsroom', 'automation'].includes(namespace) ? namespace : 'operational';
       files.push(virtualFile(`${namespace}/data/state.json`, row.payload_json, category, row.updated_at));
     }
     for (const record of records) files.push(virtualFile(`editorial/data/records/${record.id}.json`, record.payload_json, 'editorial', record.updated_at));

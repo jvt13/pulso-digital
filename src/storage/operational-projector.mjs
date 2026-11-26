@@ -1,4 +1,5 @@
 import {
+  importAutomation,
   importEditorial,
   importImageAssets,
   importNewsroom,
@@ -14,6 +15,7 @@ function payload(db, namespace) {
 export function projectOperationalDatabase(db) {
   const radar = payload(db, 'radar');
   const newsroom = payload(db, 'newsroom');
+  const automation = payload(db, 'automation');
   const records = db.prepare('SELECT id, payload_json FROM operational_records ORDER BY id').all();
   const assets = db.prepare('SELECT path, bytes, sha256, content FROM operational_assets ORDER BY path').all();
 
@@ -37,6 +39,12 @@ export function projectOperationalDatabase(db) {
     DELETE FROM editorial_events;
     DELETE FROM editorial_records;
     DELETE FROM operational_errors;
+    DELETE FROM automation_schedules;
+    DELETE FROM automation_runs;
+    DELETE FROM automation_jobs;
+    DELETE FROM automation_steps;
+    DELETE FROM automation_events;
+    DELETE FROM automation_control;
   `);
 
   if (radar) importRadar(db, radar);
@@ -44,6 +52,7 @@ export function projectOperationalDatabase(db) {
     importNewsroom(db, newsroom);
     importReviews(db, newsroom);
   }
+  if (automation) importAutomation(db, automation);
   if (records.length) {
     importEditorial(db, records.map((record) => ({
       path: `editorial/data/records/${record.id}.json`,
@@ -54,6 +63,7 @@ export function projectOperationalDatabase(db) {
   return {
     radar: Boolean(radar),
     newsroom: Boolean(newsroom),
+    automation: Boolean(automation),
     records: records.length,
     assets: assets.length,
   };

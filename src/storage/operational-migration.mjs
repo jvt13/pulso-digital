@@ -34,6 +34,7 @@ import {
   populateOperationalDatabase,
   readOperationalMarker,
   verifyOperationalDatabase,
+  writeOperationalMarker,
 } from './operational.mjs';
 import {withStorageLock} from './snapshots.mjs';
 
@@ -432,5 +433,79 @@ export function activateOperational(root, config, packageJson, key, {now = () =>
       sourceFingerprint: receipt.sourceFingerprint,
       metrics: verified.metrics,
     };
+  });
+}
+
+export function upgradePlan(root) {
+  const operationalConfig = loadOperationalConfig(root);
+  const marker = readOperationalMarker(root, operationalConfig, {verify: false});
+  return {
+    backend: marker ? 'sqlite' : 'json',
+    currentSchema: marker?.schemaVersion ?? null,
+    targetSchema: operationalConfig.schemaVersion,
+    needsUpgrade: Boolean(marker && marker.schemaVersion < operationalConfig.schemaVersion),
+    persistentChanges: false,
+  };
+}
+
+export function upgradeOperational(root, config, packageJson, key, {now = () => new Date().toISOString()} = {}) {
+  const operationalConfig = loadOperationalConfig(root);
+  const paths = operationalPaths(root, operationalConfig);
+  const previousMarker = readOperationalMarker(root, operationalConfig, {key});
+  check(previousMarker, 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');
+  if (previousMarker.schemaVersion >= operationalConfig.schemaVersion) {
+    return {backend: 'sqlite', alreadyCurrent: true, schemaVersion: previousMarker.schemaVersion, persistentChanges: false};
+  }
+  return withStorageLock(root, config, () => {
+    const before = createCheckpoint(root, config, packageJson, key, {lock: false});
+    let db;
+    try {
+      db = openEncryptedDatabase(paths.database, key);
+      const migrations = runMigrations(db, path.join(root, 'storage/migrations'), {now: now});
+      const integrity = integrityCheck(db);
+      check(integrity.ok, 'INTEGRITY', 'Banco operacional não passou na integridade após upgrade.');
+      withTransaction(db, () => {
+        const meta = db.prepare('INSERT INTO storage_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
+        meta.run('operational_schema_version', String(operationalConfig.schemaVersion));
+        meta.run('operational_upgraded_at', now());
+        meta.run('operational_app_version', packageJson.version);
+        meta.run('backend', 'sqlite');
+        db.prepare('INSERT INTO operational_events (at, action, namespace, entity_id, details_json) VALUES (?, ?, ?, ?, ?)')
+          .run(now(), 'schema-upgrade', 'operational', String(operationalConfig.schemaVersion), canonicalJson({from: previousMarker.schemaVersion, to: operationalConfig.schemaVersion, migrations: migrations.applied}));
+      });
+      db.close();
+      db = undefined;
+      const databaseBytes = fs.statSync(paths.database).size;
+      const databaseSha256 = sha256File(paths.database);
+      writeOperationalMarker(root, operationalConfig, key, {
+        activatedAt: previousMarker.activatedAt,
+        migrationId: previousMarker.migrationId,
+        sourceFingerprint: previousMarker.sourceFingerprint,
+        backupSnapshotId: previousMarker.backupSnapshotId,
+        counts: previousMarker.counts,
+        databaseSha256,
+        databaseBytes,
+        appVersion: packageJson.version,
+        gitCommit: gitCommit(root),
+        upgradedAt: now(),
+      });
+      const verified = verifyOperationalDatabase(root, {key, config: operationalConfig});
+      const after = createCheckpoint(root, config, packageJson, key, {lock: false});
+      return {
+        backend: 'sqlite',
+        alreadyCurrent: false,
+        fromSchema: previousMarker.schemaVersion,
+        schemaVersion: verified.schemaVersion,
+        migrations,
+        databaseBytes,
+        databaseSha256,
+        preUpgradeCheckpoint: before.snapshotId,
+        postUpgradeCheckpoint: after.snapshotId,
+        persistentChanges: true,
+      };
+    } catch (error) {
+      closeQuietly(db);
+      throw error;
+    }
   });
 }

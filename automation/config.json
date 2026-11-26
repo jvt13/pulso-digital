@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "timezone": "America/Cuiaba",
+  "pausedByDefault": true,
+  "missedPolicy": "coalesce",
+  "maxCatchUpMs": 3600000,
+  "leaseTtlMs": 900000,
+  "maxArticlesPerDay": 3,
+  "maxConcurrentAiRequests": 1,
+  "maxDailyTokens": 50000,
+  "maxMonthlySpendUsd": 0,
+  "ai": {
+    "enabled": false,
+    "provider": "groq",
+    "model": "openai/gpt-oss-120b",
+    "reviewProvider": "gemini",
+    "reviewModel": "gemini-3.5-flash-lite",
+    "freeTierConfirmed": false
+  },
+  "historyLimits": {
+    "runs": 200,
+    "jobs": 500,
+    "steps": 1000,
+    "events": 1000
+  },
+  "schedules": [
+    {"id": "health", "activity": "health", "intervalMs": 300000, "enabled": true},
+    {"id": "radar", "activity": "radar", "intervalMs": 1800000, "enabled": true},
+    {"id": "selection", "activity": "selection", "intervalMs": 7200000, "enabled": true},
+    {"id": "backup", "activity": "backup", "intervalMs": 86400000, "enabled": true}
+  ]
+}

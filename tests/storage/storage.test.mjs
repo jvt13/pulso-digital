@@ -26,7 +26,7 @@ import {verifySnapshot, withManifestSignature, readSnapshotManifest} from '../..
 import {restoreSnapshot} from '../../src/storage/exporter.mjs';
 import {parseStorageKey, writeStorageKey, loadStorageKey} from '../../src/storage/env.mjs';
 import {safeRelativePath, sha256} from '../../src/storage/common.mjs';
-import {migrationPlan, migrateOperational, compareOperational, activateOperational, migrationStatus} from '../../src/storage/operational-migration.mjs';
+import {migrationPlan, migrateOperational, compareOperational, activateOperational, migrationStatus, upgradePlan, upgradeOperational} from '../../src/storage/operational-migration.mjs';
 import {verifyOperationalDatabase, writeOperationalState} from '../../src/storage/operational.mjs';
 import {NewsroomRepository} from '../../src/newsroom/repository.mjs';
 import {RadarRepository} from '../../src/radar/repository.mjs';
@@ -252,7 +252,7 @@ test('storage: migrations inicializam, repetem sem efeito e detectam alteração
   const fx = fixture(t);
   const dbFile = path.join(fx.dir, 'storage/data/test.sqlcipher');
   const first = openTestDatabase(dbFile);
-  assert.equal(first.pragma('user_version', {simple: true}), 4);
+  assert.equal(first.pragma('user_version', {simple: true}), 5);
   assert.equal(first.prepare('SELECT count(*) AS n FROM sqlite_master WHERE type = ?').get('table').n >= 10, true);
   const second = runMigrations(first, path.join(root, 'storage/migrations'), {now: () => at});
   assert.equal(second.applied.length, 0);
@@ -434,8 +434,8 @@ test('storage: CLI dry-run e status retornam JSON estruturado', t => {
 
 test('storage: migrations descobertas são versionadas e não beta', () => {
   const migrations = discoverMigrations(path.join(root, 'storage/migrations'));
-  assert.equal(migrations.length, 4);
-  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3, 4]);
+  assert.equal(migrations.length, 5);
+  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3, 4, 5]);
 });
 
 test('storage: banco privado não entra em public e storage/data é ignorado', t => {
@@ -546,7 +546,7 @@ test('storage: migração, comparação e ativação SQLite preservam JSON e dad
   assert.equal(verified.metrics.counts.drafts, 1);
   assert.equal(verified.metrics.counts.editorialRecords, 1);
   assert(verified.metrics.ai.chargedTokens >= 1234);
-  assert.equal(selected.manifest.migrations.total, 4);
+  assert.equal(selected.manifest.migrations.total, 5);
 
   const target = path.join(fx.dir, 'operational-restored');
   const restored = restoreSnapshot({snapshotDir: selected.directory, key, config: fx.config, target});
@@ -599,4 +599,17 @@ test('storage: CLI operacional expõe migrate, compare, activate, status e metri
   assert.equal(metrics.result.backend, 'sqlite');
   assert.equal(metrics.result.counts.radarTopics, 1);
   assert.equal(metrics.result.counts.editorialRecords, 1);
+});
+
+test('storage: upgrade reconhece schema operacional atual', t => {
+  const fx = prepareOperationalFixture(t);
+  migrateOperational(fx.dir, fx.config, fx.packageJson, key);
+  activateOperational(fx.dir, fx.config, fx.packageJson, key);
+  const plan = upgradePlan(fx.dir);
+  assert.equal(plan.backend, 'sqlite');
+  assert.equal(plan.currentSchema, 5);
+  assert.equal(plan.targetSchema, 5);
+  assert.equal(plan.needsUpgrade, false);
+  const result = upgradeOperational(fx.dir, fx.config, fx.packageJson, key);
+  assert.equal(result.alreadyCurrent, true);
 });

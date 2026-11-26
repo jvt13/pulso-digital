@@ -1,4 +1,4 @@
-# Armazenamento operacional criptografado — contrato 1.4.6
+# Armazenamento operacional criptografado — contrato 1.4.7
 
 A camada `src/storage/` mantém dois artefatos distintos:
 
@@ -39,6 +39,10 @@ A migration `004_operational_store.sql` acrescenta:
 - `operational_events`: auditoria de importação, ativação e sincronização;
 - views `v_operational_backend`, `v_operational_assets` e `v_operational_events`.
 
+A migration `005_automation.sql` acrescenta as agendas, execuções, jobs, etapas, eventos e
+controle da automação, com views `v_automation_status`, `v_automation_jobs`,
+`v_automation_runs` e `v_automation_health`. O schema operacional ativo é v5.
+
 As tabelas normalizadas e views anteriores continuam sendo projeções derivadas do registro
 canônico por `src/storage/operational-projector.mjs`. Consultas parametrizadas, transações
 `BEGIN IMMEDIATE` e hashes SHA-256 protegem leituras e escritas. Não existe uma segunda
@@ -55,6 +59,8 @@ npm run storage -- migrate
 npm run storage -- migration-status
 npm run storage -- compare
 npm run storage -- activate
+npm run storage -- upgrade --dry-run
+npm run storage -- upgrade
 npm run storage -- verify
 npm run storage -- checkpoint --dry-run
 npm run storage -- checkpoint
@@ -74,6 +80,8 @@ npm run storage -- recover --reason "Justificativa"
   reservas, assets e referências. Divergência bloqueia a ativação.
 - `activate` revalida a fonte, promove o banco pendente para `operational.sqlcipher`, grava o
   marcador assinado e executa o checkpoint pós-migração.
+- `upgrade` aplica migrations pendentes ao banco operacional ativo, cria checkpoints pré e
+  pós-upgrade e atualiza o marcador. `--dry-run` não altera o banco.
 - `backup` é alias de `checkpoint`; com o backend ativo, coleta o estado consistente do
   SQLite, não os JSON legados.
 - `verify`/`inspect`/`metrics` usam o banco operacional quando ativo e o snapshot mais recente
@@ -122,8 +130,10 @@ de verdade. Cópias legadas em texto claro permanecem no disco e devem ser prote
 permissões do sistema e removidas futuramente após homologação específica.
 
 O banco operacional não deve ser confundido com um snapshot imutável: ele é alterado durante
-a operação. A integridade considera o hash do arquivo no marcador, `integrity_check`,
-`foreign_key_check`, `cipher_integrity_check` e os hashes dos registros canônicos.
+a operação. O hash do arquivo no marcador é uma linha de base; `storage verify` informa
+`databaseHashChanged` quando o banco foi alterado legitimamente. A integridade considera
+SQLCipher, `integrity_check`, `foreign_key_check`, `cipher_integrity_check`, o HMAC do marcador
+e os hashes dos registros canônicos.
 
 ## Retenção e VPS
 
@@ -143,6 +153,13 @@ Implantação Linux recomendada:
 - reinicialização por unidade systemd futura, sem agendamento ou exposição de portas nesta
   tarefa;
 - validação pós-atualização: `storage status`, `storage verify`, `storage compare` e testes.
+
+## Automação
+
+O estado da automação é persistido no namespace `automation/data/state.json`, projetado nas
+tabelas `automation_*` e incluído nos checkpoints e restaurações. O orquestrador usa leases
+SQLite (`automation-orchestrator`) e mantém a pausa persistente. O pipeline importa somente
+rascunhos privados; não há publicação automática.
 
 ## Indicadores para o painel
 

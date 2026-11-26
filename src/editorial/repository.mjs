@@ -139,16 +139,22 @@ export class Repository {
           const current = readOperationalRecord(this.root, record.input.id);
           expectedHashes[record.input.id] = current ? hash(current) : null;
         }
+        const recordEntries = records.map((record) => ({
+          id: record.input.id,
+          beforeHash: expectedHashes[record.input.id],
+          afterHash: hash(record),
+        }));
         const fileChanges = changes.filter(({ relative }) => !recordPattern.test(relative));
         const result = this._transactionFiles(fileChanges, {
           afterApply: () => writeOperationalRecords(this.root, records, { expectedHashes }),
+          recordEntries,
         });
         return { ...result, files: [...result.files, ...recordChanges.map(({ relative }) => relative)] };
       }
     }
     return this._transactionFiles(changes);
   }
-  _transactionFiles(changes, { afterApply = null } = {}) {
+  _transactionFiles(changes, { afterApply = null, recordEntries = [] } = {}) {
     ensure(this.heldLock,'LOCK_REQUIRED','Publicação exige o bloqueio editorial.');
     const id = crypto.randomUUID(), prefix = `editorial/data/transactions/${id}`;
     const entries = changes.map(({ relative, bytes }, i) => {
@@ -159,7 +165,7 @@ export class Repository {
       atomicWrite(this.file(prepared), bytes);
       return { relative, beforeHash, afterHash, backup, prepared };
     });
-    let manifest = { version: '1.0', id, phase: 'prepared', at: this.now(), entries };
+    let manifest = { version: '1.0', id, phase: 'prepared', at: this.now(), entries, records: recordEntries };
     atomicWrite(this.journal, jsonBytes(manifest));
     try {
       manifest.phase = 'applying'; atomicWrite(this.journal, jsonBytes(manifest));
@@ -170,6 +176,7 @@ export class Repository {
         this.fault('after-write', { index, entry });
       });
       if (afterApply) afterApply();
+      this.fault('after-record-write', { manifest });
       manifest.phase = 'committed'; atomicWrite(this.journal, jsonBytes(manifest));
       this.fault('committed', manifest);
       atomicWrite(this.file(`${prefix}/manifest.json`),jsonBytes(manifest));
@@ -191,22 +198,37 @@ export class Repository {
     if (!fs.existsSync(this.journal)) return { recovered: false };
     const manifest = readJson(this.journal, this.config.limits.stateBytes);
     ensure(manifest.version === '1.0' && /^[a-f0-9-]{36}$/.test(manifest.id) && ['prepared', 'applying', 'committed'].includes(manifest.phase) && Array.isArray(manifest.entries), 'JOURNAL_INTEGRITY', 'Diário inválido; intervenção administrativa necessária.');
+    const recordEntries = Array.isArray(manifest.records) ? manifest.records : [];
+    const recordStates = recordEntries.map((entry) => {
+      ensure(typeof entry.id === 'string' && /^[a-z0-9-]+$/.test(entry.id) && (entry.beforeHash === null || /^[a-f0-9]{64}$/.test(entry.beforeHash)) && /^[a-f0-9]{64}$/.test(entry.afterHash), 'JOURNAL_INTEGRITY', 'Registro do diário inválido.');
+      const current = operationalActive(this.root) ? readOperationalRecord(this.root, entry.id) : null;
+      return {...entry, currentHash: current ? hash(current) : null};
+    });
+    const afterCount = recordStates.filter((entry) => entry.currentHash === entry.afterHash).length;
+    const beforeCount = recordStates.filter((entry) => entry.currentHash === entry.beforeHash).length;
+    const forward = manifest.phase === 'committed' || (manifest.phase === 'applying' && afterCount > 0);
+    if (manifest.phase === 'committed' || forward) {
+      ensure(afterCount === recordStates.length, 'RECOVERY_CONFLICT', 'Commit SQL não corresponde integralmente ao diário; intervenção necessária.');
+    } else {
+      ensure(beforeCount === recordStates.length && afterCount === 0, 'RECOVERY_CONFLICT', 'Estado SQL divergente do diário; intervenção necessária.');
+    }
     for (const [index, entry] of manifest.entries.entries()) {
       this.assertTransactionPath(entry.relative);
       ensure(entry.backup === `editorial/data/transactions/${manifest.id}/${index}.before` && entry.prepared === `editorial/data/transactions/${manifest.id}/${index}.after`, 'JOURNAL_INTEGRITY', 'Caminho de backup inválido.');
       const current = fileHash(this.file(entry.relative));
       ensure(current === entry.beforeHash || current === entry.afterHash, 'RECOVERY_CONFLICT', 'Arquivo alterado externamente; recuperação não sobrescreverá esse arquivo.', { file: entry.relative });
       ensure(fileHash(this.file(entry.prepared)) === entry.afterHash && (!entry.beforeHash || fileHash(this.file(entry.backup)) === entry.beforeHash), 'JOURNAL_INTEGRITY', 'Backup ou arquivo preparado corrompido.');
-      if (manifest.phase === 'committed') ensure(current === entry.afterHash, 'RECOVERY_CONFLICT', 'Publicação marcada como concluída possui arquivo divergente.');
+      if (forward) ensure(current === entry.afterHash, 'RECOVERY_CONFLICT', 'Transação confirmada possui arquivo divergente.');
     }
-    if (manifest.phase !== 'committed') for (const entry of [...manifest.entries].reverse()) {
+    if (!forward) for (const entry of [...manifest.entries].reverse()) {
       if (fileHash(this.file(entry.relative)) === entry.afterHash) {
         if (entry.beforeHash) atomicWrite(this.file(entry.relative), fs.readFileSync(this.file(entry.backup)));
         else fs.unlinkSync(this.file(entry.relative));
       }
     }
-    atomicWrite(this.file(`editorial/data/transactions/${manifest.id}/manifest.json`),jsonBytes({...manifest,recovery:{at:this.now(),action:manifest.phase==='committed'?'confirmed':'rolled-back'}}));
+    const action = forward ? (manifest.phase === 'committed' ? 'confirmed' : 'reconciled-forward') : 'rolled-back';
+    atomicWrite(this.file(`editorial/data/transactions/${manifest.id}/manifest.json`),jsonBytes({...manifest,recovery:{at:this.now(),action}}));
     fs.unlinkSync(this.journal);
-    return { recovered: true, transaction: manifest.id, action: manifest.phase === 'committed' ? 'confirmed' : 'rolled-back' };
+    return { recovered: true, transaction: manifest.id, action };
   }
 }

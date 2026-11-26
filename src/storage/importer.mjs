@@ -418,6 +418,91 @@ export function importReviews(db, state) {
   for(const review of state.reviewSamples||[])insert(review,null,null);
 }
 
+export function importAutomation(db, state) {
+  if (!state) return;
+  for (const schedule of state.schedules || []) {
+    db.prepare(`INSERT INTO automation_schedules
+      (id, activity, interval_ms, enabled, next_run_at, last_run_at, last_status, canonical_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      schedule.id,
+      schedule.activity,
+      schedule.intervalMs,
+      schedule.enabled === false ? 0 : 1,
+      schedule.nextRunAt || null,
+      schedule.lastRunAt || null,
+      schedule.lastStatus || null,
+      canonicalJson(schedule),
+    );
+  }
+  for (const run of state.runs || []) {
+    db.prepare(`INSERT INTO automation_runs
+      (id, schedule_id, activity, mode, status, started_at, finished_at, next_run_at, summary_json, error_json, canonical_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      run.id,
+      run.scheduleId || null,
+      run.activity,
+      run.mode || 'once',
+      run.status,
+      run.startedAt,
+      run.finishedAt || null,
+      run.nextRunAt || null,
+      run.summary ? canonicalJson(run.summary) : null,
+      run.error ? canonicalJson(run.error) : null,
+      canonicalJson(run),
+    );
+  }
+  for (const job of state.jobs || []) {
+    db.prepare(`INSERT INTO automation_jobs
+      (id, run_id, topic_id, status, stage, attempts, max_attempts, next_attempt_at, lease_owner, lease_expires_at, canonical_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      job.id,
+      job.runId || null,
+      job.topicId || null,
+      job.status,
+      job.stage || null,
+      job.attempts || 0,
+      job.maxAttempts || 1,
+      job.nextAttemptAt || null,
+      job.leaseOwner || null,
+      job.leaseExpiresAt || null,
+      canonicalJson(job),
+    );
+  }
+  for (const step of state.steps || []) {
+    db.prepare(`INSERT INTO automation_steps
+      (id, job_id, step, status, attempt, started_at, finished_at, canonical_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      step.id,
+      step.jobId,
+      step.step,
+      step.status,
+      step.attempt || 1,
+      step.startedAt || null,
+      step.finishedAt || null,
+      canonicalJson(step),
+    );
+  }
+  for (const event of state.events || []) {
+    db.prepare(`INSERT INTO automation_events
+      (id, run_id, job_id, at, type, severity, message, details_json, canonical_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      event.id,
+      event.runId || null,
+      event.jobId || null,
+      event.at,
+      event.type,
+      event.severity || 'info',
+      event.message || null,
+      event.details ? canonicalJson(event.details) : '{}',
+      canonicalJson(event),
+    );
+  }
+  for (const [key, value] of Object.entries(state.control || {})) {
+    db.prepare('INSERT INTO automation_control (key, value, updated_at) VALUES (?, ?, ?)')
+      .run(key, typeof value === 'string' ? value : canonicalJson(value), state.updatedAt || state.createdAt || new Date().toISOString());
+  }
+}
+
 export function importImageAssets(db, files) {
   const statement = db.prepare(`INSERT INTO image_assets
     (path, topic_id, scope, name, bytes, sha256, media_type, width, height)
@@ -493,6 +578,7 @@ export function importSnapshot(db, collection, {
     );
     importImageAssets(db, collection.files);
     importReviews(db, parseJson(byPath.get('newsroom/data/state.json'), 'newsroom/data/state.json'));
+    importAutomation(db, parseJson(byPath.get('automation/data/state.json'), 'automation/data/state.json'));
     const metrics = queryMetrics(db);
     db.prepare('UPDATE import_runs SET status = ?, completed_at = ?, counts_json = ? WHERE fingerprint = ?')
       .run('completed', new Date().toISOString(), canonicalJson(metrics.counts), collection.fingerprint);

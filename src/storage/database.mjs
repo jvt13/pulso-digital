@@ -95,6 +95,7 @@ export function queryMetrics(db) {
     coalesce(sum(bytes), 0) AS image_bytes
     FROM image_assets`).get();
   const hasReviewTable=scalar(db,"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='editorial_reviews'")>0;
+  const hasAutomationTable=scalar(db,"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='automation_jobs'")>0;
   const reviewSeverity = hasReviewTable?db.prepare(`SELECT
     count(*) AS reviews,
     coalesce(sum(stale), 0) AS stale,
@@ -127,6 +128,13 @@ export function queryMetrics(db) {
       publicationImages: scalar(db, 'SELECT count(*) FROM publication_images'),
       configs: scalar(db, 'SELECT count(*) FROM configs'),
       ...(hasReviewTable?{reviews:Number(reviewSeverity.reviews)}:{}),
+      ...(hasAutomationTable?{
+        automationSchedules:Number(scalar(db,'SELECT count(*) FROM automation_schedules')),
+        automationRuns:Number(scalar(db,'SELECT count(*) FROM automation_runs')),
+        automationJobs:Number(scalar(db,'SELECT count(*) FROM automation_jobs')),
+        automationSteps:Number(scalar(db,'SELECT count(*) FROM automation_steps')),
+        automationEvents:Number(scalar(db,'SELECT count(*) FROM automation_events')),
+      }:{}),
       images: scalar(db, 'SELECT count(*) FROM images'),
       imageAssets: Number(imageAssets.image_assets),
       operationalErrors: scalar(db, 'SELECT count(*) FROM operational_errors'),
@@ -139,6 +147,9 @@ export function queryMetrics(db) {
       ...(hasReviewTable?{
         reviews: grouped(db, 'SELECT status AS key, count(*) AS total FROM editorial_reviews GROUP BY status ORDER BY status'),
         reviewResults: grouped(db, "SELECT coalesce(effective_result, 'none') AS key, count(*) AS total FROM editorial_reviews GROUP BY coalesce(effective_result, 'none') ORDER BY key"),
+      }:{}),
+      ...(hasAutomationTable?{
+        automationJobs: grouped(db, 'SELECT status AS key, count(*) AS total FROM automation_jobs GROUP BY status ORDER BY status'),
       }:{}),
     },
     ai: {
@@ -165,6 +176,13 @@ export function queryMetrics(db) {
         minor: Number(reviewSeverity.minor),
         informational: Number(reviewSeverity.informational),
       },
+    }}:{}),
+    ...(hasAutomationTable?{automation:{
+      schedules:Number(scalar(db,'SELECT count(*) FROM automation_schedules')),
+      runs:Number(scalar(db,'SELECT count(*) FROM automation_runs')),
+      jobs:Number(scalar(db,'SELECT count(*) FROM automation_jobs')),
+      steps:Number(scalar(db,'SELECT count(*) FROM automation_steps')),
+      events:Number(scalar(db,'SELECT count(*) FROM automation_events')),
     }}:{}),
   };
 }

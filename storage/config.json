@@ -22,7 +22,7 @@
     "filename": "operational.sqlcipher",
     "markerFilename": "operational.json",
     "migrationReceipt": "operational-migration.json",
-    "schemaVersion": 4
+    "schemaVersion": 5
   },
   "sources": {
     "directories": [

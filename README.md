@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.6
+# Pulso Digital — v1.4.7
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -47,6 +47,13 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - A ativação é explícita: `storage migrate --dry-run`, `storage migrate`, `storage compare` e `storage activate`. O marcador assinado `storage/data/operational.json` define o backend ativo; os JSON permanecem como material legado de recuperação e não são mais escritos.
 - `storage backup`/`checkpoint` geram snapshots consistentes a partir do banco ativo; `storage status`, `storage metrics --json` e `storage verify` refletem o backend operacional.
 - Nenhuma chamada de IA, aprovação, publicação, mudança de design ou configuração de VPS é feita pela camada de armazenamento.
+
+## Automação editorial
+- `npm run automation -- help` apresenta o orquestrador persistente, `status`, `plan`, `run --once`, `run --dry-run`, `start`, `pause`, `resume`, `jobs`, `history`, `health` e `metrics`.
+- A automação inicia pausada. O padrão não executa IA real (`ai.enabled=false`); a homologação ponta a ponta com chamadas reais será feita posteriormente.
+- Agendas padrão: radar a cada 30 minutos, seleção a cada 120 minutos, health a cada 5 minutos e backup a cada 24 horas. Execuções atrasadas são consolidadas, sem disparar todos os horários perdidos.
+- Leases no SQLite impedem duas instâncias concorrentes. O pipeline usa os motores existentes e importa somente rascunhos privados; não aprova nem publica.
+- A migration v5 adiciona `automation_schedules`, `automation_runs`, `automation_jobs`, `automation_steps`, `automation_events` e `automation_control`; use `npm run storage -- upgrade` para aplicar migrations ao banco operacional ativo.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital

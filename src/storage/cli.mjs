@@ -13,7 +13,7 @@ import {
   selectSnapshot,
 } from './snapshots.mjs';
 import {restoreSnapshot} from './exporter.mjs';
-import {migrationPlan, migrateOperational, compareOperational, migrationStatus, activateOperational} from './operational-migration.mjs';
+import {migrationPlan, migrateOperational, compareOperational, migrationStatus, activateOperational, upgradePlan, upgradeOperational} from './operational-migration.mjs';
 import {loadOperationalConfig, operationalActive, operationalMetrics, verifyOperationalDatabase} from './operational.mjs';
 
 const help = `Pulso Digital - armazenamento criptografado
@@ -22,6 +22,7 @@ Uso: npm run storage -- COMANDO [opções]
 help | status | checkpoint [--dry-run] | verify | inspect
 metrics [--json] | restore --dry-run | restore --target DIRETORIO
 migrate [--dry-run] | migration-status | compare | activate | backup
+upgrade [--dry-run]
 keygen [--env-file ARQUIVO] | recover --reason "Justificativa"
 
 Opções globais: --root DIRETORIO, --json, --snapshot ID
@@ -42,6 +43,7 @@ const commands = {
   compare: {values: [], flags: []},
   activate: {values: [], flags: []},
   backup: {values: [], flags: ['dry-run']},
+  upgrade: {values: [], flags: ['dry-run']},
   keygen: {values: ['env-file'], flags: []},
   recover: {values: ['reason'], flags: []},
 };
@@ -247,6 +249,16 @@ export async function main(argv = process.argv.slice(2)) {
         const activation = activateOperational(root, config, packageJson, loaded.key);
         const postMigrationCheckpoint = createCheckpoint(root, config, packageJson, loaded.key);
         result = {command: 'activate', ...activation, postMigrationCheckpoint};
+        break;
+      }
+      case 'upgrade': {
+        if (opts['dry-run']) {
+          result = {command: 'upgrade', ...upgradePlan(root)};
+        } else {
+          const loaded = loadStorageKey(root);
+          check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+          result = {command: 'upgrade', ...upgradeOperational(root, config, packageJson, loaded.key)};
+        }
         break;
       }
       default:
