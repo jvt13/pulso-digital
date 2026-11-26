@@ -75,7 +75,7 @@ npm run storage -- recover --reason "Justificativa"
 
 - `migrate --dry-run` apenas inventaria e não cria banco, snapshot ou lock.
 - `migrate` cria um checkpoint pré-migração, um banco `operational.pending.*.sqlcipher` e um
-  recibo assinado. A fonte de verdade continua JSON.
+  recibo assinado. A fonte de verdade continua JSON até a ativação explícita.
 - `compare` confronta hashes, contagens, estados, históricos, claims, evidências, revisões,
   reservas, assets e referências. Divergência bloqueia a ativação.
 - `activate` revalida a fonte, promove o banco pendente para `operational.sqlcipher`, grava o

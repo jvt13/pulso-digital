@@ -38,7 +38,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 
 ## Armazenamento criptografado
 - `npm run storage -- help` apresenta checkpoint, verificação, métricas, restauração isolada e gestão de chave. Arquitetura e estratégia de nuvem: [storage/README.md](storage/README.md).
-- SQLCipher (`better-sqlite3-multiple-ciphers@13.2.0`, MIT) mantém checkpoints `storage/data/` criptografados em repouso. Os repositórios JSON continuam sendo a fonte operacional de verdade.
+- SQLCipher (`better-sqlite3-multiple-ciphers@13.2.0`, MIT) mantém checkpoints `storage/data/` criptografados em repouso. Após a ativação, o banco operacional é a fonte de verdade; os JSON permanecem apenas como material legado de recuperação.
 - A chave `PULSO_STORAGE_KEY` fica apenas no ambiente ou `.env` ignorado. Sem a chave ou backup válido, o snapshot não é recuperável.
 - O storage não substitui os motores atuais, não acessa IA, não aprova, não publica e não inclui `.env`, credenciais ou `.git` no checkpoint.
 
@@ -82,7 +82,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 ## Organização
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
-## Automação futura (não implementada)
-Google Trends Trending Now (RSS oficial, BR) -> normalizar pautas -> consultar fontes oficiais e independentes -> deduplicar -> gerar rascunho com contexto original -> verificar fatos, datas, direitos de imagem e qualidade -> revisão/aprovação -> persistir matéria -> build/test -> deploy. Implementar registro de fontes, auditoria, correções, limites, retentativas e rollback. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+## Automação editorial supervisionada
+O orquestrador da versão 1.4.7 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem e importação de rascunhos privados. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. A operação contínua e as chamadas reais de IA deverão ser homologadas na etapa seguinte. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
 
 Referências: https://support.google.com/trends/answer/3076011 ; https://support.google.com/adsense/answer/7299563 ; https://developers.google.com/search/docs/essentials/spam-policies
