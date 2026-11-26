@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.8
+# Pulso Digital — v1.4.9
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -31,7 +31,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - A redação 2.0 usa taxonomia factual aditiva 1.1: fato documentado, declaração atribuída, expectativa, rumor e opinião. Título e resumo exigem evidência própria; fatos numéricos não podem ser classificados como opinião.
 - Evidências guardam até 600 caracteres, papel editorial e indicação de truncamento. O `Editorial Quality Score` determinístico é auxiliar, expõe cobertura/limitações e não certifica fatos nem autoriza publicação.
 - `enrich`, `revise` e `quality` permitem atualizar evidências, revisar um rascunho sem trocar seu ID e consultar o score. Imagens próprias podem ser autorizadas no manifesto, mas elementos de terceiros exigem fundamento específico.
-- `review`, `review-status` e `review-history` permitem uma revisão semântica independente no Gemini, vinculada ao hash de texto, título, resumo, claims e evidências. O resultado é privado, não aprova e não publica.
+- `review`, `review-status` e `review-history` permitem uma revisão semântica independente no Gemini, vinculada ao hash de texto, título, resumo, claims e evidências. O contexto usa janelas relevantes por claim, informa omissões e bloqueia chamada quando a cobertura necessária é insuficiente. O resultado é privado, não aprova e não publica.
 - Gemini usa `gemini-3.5-flash-lite` em modalidade gratuita, com orçamento separado por tarefa, sem grounding, ferramentas ou fallback pago.
 - A redação usa transporte compacto 2.0: claims não repetem o texto dos parágrafos, evidências usam aliases reversíveis e slug/categoria/classificação são reconstruídos localmente antes da validação. `reasoning_effort: low` é configurável e continua contabilizado na saída.
 - Erros de IA são classificados por tipo (schema, truncamento, JSON, timeout, limite, autenticação, falha transitória e orçamento) com ação recomendada; não há repetição automática. A pré-checagem exige saldo também para a revisão posterior.

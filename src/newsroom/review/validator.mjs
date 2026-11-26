@@ -35,5 +35,6 @@ export function validateReviewOutput(output,context,{verification,quality,maxFin
       semanticModelResult:output.result,
       effectiveResult:result,
     },
+    evidenceCoverage: context.evidenceCoverage,
   };
 }

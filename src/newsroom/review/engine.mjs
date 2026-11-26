@@ -32,11 +32,11 @@ function usageFromEntry(entry){
 
 export class ReviewEngine {
   constructor(repo,{dependencies={}}={}){this.repo=repo;this.dependencies=dependencies;}
-  _configuration(provider,model){return reviewConfiguration(this.repo.root,provider||this.repo.config.review.provider,model||this.repo.config.review.model);}
+  _configuration(provider,model){return reviewConfiguration(this.repo.root,provider||this.repo.config.review.provider,model||this.repo.config.review.model,this.repo.config.review.maxEvidenceChars);}
   _reviewContext(record,configuration){return buildReviewContext(record,record.dossier,configuration);}
   reviewBudget(state=this.repo.read()){const review=this.repo.config.review,usage=taskUsage(state,review);return {taskId:review.taskId,provider:review.provider,model:review.model,calls:usage.calls,maxCalls:review.maxCallsPerTask,tokens:usage.tokens,maxTokens:review.maxTokensPerTask,remainingCalls:Math.max(0,review.maxCallsPerTask-usage.calls),remainingTokens:Math.max(0,review.maxTokensPerTask-usage.tokens),incomplete:usage.incomplete};}
-  status(id){const record=this.repo.get(id);check(record?.draft,'STATE','Rascunho indisponível.');const configuration=this._configuration();const context=this._reviewContext(record,configuration);const reviews=record.reviews||[],latest=reviews.at(-1)||null;return {id,contentHash:context.contentHash,configurationHash:configuration.configurationHash,provider:configuration.provider,model:configuration.model,promptVersion:configuration.promptVersion,schemaVersion:REVIEW_SCHEMA_VERSION,promptChars:context.promptChars,reviewCount:reviews.length,latest:latest?{id:latest.id,status:latest.status,result:latest.result??null,createdAt:latest.createdAt,contentHash:latest.contentHash,configurationHash:latest.configurationHash,model:latest.model,findings:latest.findings?.length??0,severityCounts:latest.severityCounts??null,usage:latest.usage??null}:null,stale:!latest||latest.contentHash!==context.contentHash||latest.configurationHash!==configuration.configurationHash,budget:this.reviewBudget()};}
-  history(id){const record=this.repo.get(id);check(record,'NOT_FOUND','Pauta não encontrada.');return (record.reviews||[]).map(({id:reviewId,status,result,modelResult,createdAt,provider,model,promptVersion,contentHash,configurationHash,findings,severityCounts,claimStatusCounts,usage,error})=>({id:reviewId,status,result:result??null,modelResult:modelResult??null,createdAt,provider,model,promptVersion,contentHash,configurationHash,findings:findings?.length??0,severityCounts:severityCounts??null,claimStatusCounts:claimStatusCounts??null,usage:usage??null,error:error??null}));}
+  status(id){const record=this.repo.get(id);check(record?.draft,'STATE','Rascunho indisponível.');const configuration=this._configuration();const context=this._reviewContext(record,configuration);const reviews=record.reviews||[],latest=reviews.at(-1)||null;return {id,contentHash:context.contentHash,configurationHash:configuration.configurationHash,provider:configuration.provider,model:configuration.model,promptVersion:configuration.promptVersion,schemaVersion:REVIEW_SCHEMA_VERSION,promptChars:context.promptChars,evidenceCoverage:context.evidenceCoverage,reviewCount:reviews.length,latest:latest?{id:latest.id,status:latest.status,result:latest.result??null,createdAt:latest.createdAt,contentHash:latest.contentHash,configurationHash:latest.configurationHash,model:latest.model,findings:latest.findings?.length??0,severityCounts:latest.severityCounts??null,evidenceCoverage:latest.evidenceCoverage??null,usage:latest.usage??null}:null,stale:!latest||latest.contentHash!==context.contentHash||latest.configurationHash!==configuration.configurationHash,budget:this.reviewBudget()};}
+  history(id){const record=this.repo.get(id);check(record,'NOT_FOUND','Pauta não encontrada.');return (record.reviews||[]).map(({id:reviewId,status,result,modelResult,createdAt,provider,model,promptVersion,contentHash,configurationHash,findings,severityCounts,claimStatusCounts,evidenceCoverage,usage,error})=>({id:reviewId,status,result:result??null,modelResult:modelResult??null,createdAt,provider,model,promptVersion,contentHash,configurationHash,findings:findings?.length??0,severityCounts:severityCounts??null,claimStatusCounts:claimStatusCounts??null,evidenceCoverage:evidenceCoverage??null,usage:usage??null,error:error??null}));}
   async review(id,{provider,model,freeTierConfirmed=false,dryRun=false}={}){
     return this.repo.withLock(async()=>{
       const state=this.repo.read(),record=state.topics[id];
@@ -64,6 +64,7 @@ export class ReviewEngine {
         contentHash:context.contentHash,
         configurationHash:configuration.configurationHash,
         promptChars:context.promptChars,
+        evidenceCoverage:context.evidenceCoverage,
         estimatedReservedTokens:held,
         stale:Boolean(reviews.at(-1)&&(reviews.at(-1).contentHash!==context.contentHash||reviews.at(-1).configurationHash!==configuration.configurationHash)),
         budget:{...budget,callsAfterReservation:budget.calls+1,tokensAfterReservation:budget.tokens+held},
@@ -71,6 +72,11 @@ export class ReviewEngine {
         persistentChanges:false,
       };
       if(dryRun)return plan;
+      if(held>reviewConfig.maxInputTokens+reviewConfig.maxOutputTokens){
+        const error=new NewsroomError('REVIEW_EVIDENCE_INSUFFICIENT','A revisão integral excede o orçamento disponível; divida ou reduza o escopo de evidências.');
+        error.details={estimatedReservedTokens:held,maxBudgetTokens:reviewConfig.maxInputTokens+reviewConfig.maxOutputTokens,evidenceCoverage:context.evidenceCoverage};
+        throw error;
+      }
       if(held>reviewConfig.maxTokensPerMinute){
         const error=new NewsroomError('REVIEW_TOO_LARGE','A revisão integral não cabe no teto interno por minuto.');
         error.details={estimatedReservedTokens:held,maxTokensPerMinute:reviewConfig.maxTokensPerMinute,promptChars:context.promptChars};
@@ -153,6 +159,7 @@ export class ReviewEngine {
         createdAt:this.repo.now(),
         ...validated,
         injectionSignals:context.injectionSignals,
+        evidenceCoverage:context.evidenceCoverage,
         usage:usageFromEntry(entry),
         attemptId:entry.id,
         requestId:response.requestId||null,

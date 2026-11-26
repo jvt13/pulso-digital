@@ -15,7 +15,7 @@ import {describeEvidence} from './evidence-quality.mjs';
 import {evaluateEditorialQuality} from './quality.mjs';
 import {extractHtml} from './extractor.mjs';
 import {syncOperationalAssets} from '../storage/operational.mjs';
-import {correctAttributedQuoteFromFinding,correctUnqualifiedRumorClaims} from './claims.mjs';
+import {auditMechanicalCorrections,correctAttributedQuoteFromFinding,correctUnqualifiedRumorClaims,demoteUnsafeHistoricalPromotions} from './claims.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -88,6 +88,21 @@ export class NewsroomEngine {
     record.history.push({at:this.repo.now(),action:'mechanical-attribution-correction',reason,change,previousDraftHash:previousHash,newDraftHash:hash(record.draft)});
     this.repo.save(state);
     return {id,status:record.status,change,verification};
+  });}
+  auditCorrections(id){const record=this.show(id);return auditMechanicalCorrections(record.draft,record.dossier,record.history||[]);}
+  async hardenHistoricalCorrections(id,{reason='Auditoria da PD-006.6.1: fonte única não confirma independentemente um fato.'}={}){return this.repo.withLock(async()=>{
+    const state=this.repo.read(),record=state.topics[id];
+    check(record?.draft&&record?.dossier,'STATE','Rascunho e dossiê são obrigatórios.');
+    const previousHash=hash(record.draft);
+    const changes=demoteUnsafeHistoricalPromotions(record.draft,record.dossier,record.history||[]);
+    check(changes.length,'STATE','Nenhuma promoção histórica insegura foi encontrada.');
+    const verification=verifyDraft(record.draft,record.dossier);
+    check(verification.valid,'DETERMINISTIC_BLOCKED','A reclassificação atribuída não passou na validação.');
+    record.verification=verification;
+    record.status='imported';
+    record.history.push({at:this.repo.now(),action:'mechanical-classification-demotion',reason,changes,previousDraftHash:previousHash,newDraftHash:hash(record.draft)});
+    this.repo.save(state);
+    return {id,status:record.status,changes,verification};
   });}
   async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=ensurePreparedImage(this.repo.root,id,record,{now:this.repo.now()});record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status,automatic:!!prepared.automatic});this.repo.save(state);syncOperationalAssets(this.repo.root,`newsroom/data/images/${id}`);return {id,status:record.status,image:record.image,automatic:!!prepared.automatic};});}
   async importDraft(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid&&!record.synthetic,'STATE','Somente rascunho real verificado pode ser importado.');check(['image-pending','ready-to-import','imported'].includes(record.status),'STATE','Execute prepare-image antes da importação.');

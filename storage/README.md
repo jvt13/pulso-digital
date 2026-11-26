@@ -1,4 +1,4 @@
-# Armazenamento operacional criptografado — contrato 1.4.8
+# Armazenamento operacional criptografado — contrato 1.4.9
 
 A camada `src/storage/` mantém dois artefatos distintos:
 

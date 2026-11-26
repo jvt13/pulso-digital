@@ -381,7 +381,7 @@ test('automation: execução de radar não tenta projetar etapa sem job', async 
   assert.equal(orchestrator.repository.metrics().automation.steps, 0);
 });
 
-test('automation: correção mecânica limitada reclassifica rumor contraditório com evidência primária', () => {
+test('automation: correção mecânica limitada não promove rumor sem atribuição explícita', () => {
   const value = draft();
   value.claims[0].classification = 'rumor';
   value.claims[0].nature = 'rumor';
@@ -396,9 +396,9 @@ test('automation: correção mecânica limitada reclassifica rumor contraditóri
     }],
   };
   const changes = correctUnqualifiedRumorClaims(value, dossier);
-  assert.equal(changes.length, 1);
-  assert.equal(value.claims[0].classification, 'confirmed');
-  assert.equal(value.claims[0].nature, 'documented-fact');
+  assert.equal(changes.length, 0);
+  assert.equal(value.claims[0].classification, 'rumor');
+  assert.equal(value.claims[0].nature, 'rumor');
 
   const qualified = structuredClone(value);
   qualified.claims[0].classification = 'rumor';
@@ -411,7 +411,7 @@ test('automation: correção mecânica de atribuição usa citação literal da 
   const value = draft();
   value.claims[1].classification = 'attributed';
   value.claims[1].nature = 'attributed-statement';
-  value.claims[1].attribution = 'Pesquisadora';
+  value.claims[1].attribution = 'the researcher';
   value.claims[1].text = 'A pesquisadora destaca a necessidade de mais olhos humanos e envolvimento de diferentes origens.';
   value.sections[1].paragraphs[0] = value.claims[1].text;
   const dossier = {

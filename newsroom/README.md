@@ -45,6 +45,8 @@ npm run newsroom -- review-history pauta-ID
 npm run newsroom -- eligibility pauta-ID
 npm run newsroom -- repair-classification pauta-ID --reason "Correção mecânica comprovada"
 npm run newsroom -- repair-review-finding pauta-ID --finding-id ACHADO --reason "Correção mecânica"
+npm run newsroom -- audit-corrections pauta-ID
+npm run newsroom -- harden-historical-corrections pauta-ID --reason "Auditoria comprovada"
 npm run newsroom -- run --limit 3 --confirm-free-tier
 npm run newsroom -- show pauta-ID
 npm run newsroom -- list
@@ -68,12 +70,15 @@ Após `storage activate`, os repositórios de radar, newsroom e editorial leem e
 recuperação. Consumo, revisões, históricos e assets são migrados junto do estado do newsroom.
 
 `review-v2` envia ao Gemini um payload compacto: título, resumo, seções, claims com aliases
-de evidência e cada trecho de evidência uma única vez, preservando até 600 caracteres por
-trecho. O resultado continua no contrato `review-v1`, vinculado ao hash integral e à
-configuração do revisor. Aliases e IDs inexistentes, respostas truncadas e resultados
-incompatíveis são rejeitados. Severidade `critical`/`major`, claims contraditos e sinais de
-prompt injection elevam o resultado efetivo; falhas determinísticas bloqueantes nunca são
-sobrescritas. `thinkingLevel: minimal` é explícito e limitado à faixa do modelo.
+de evidência e cada trecho necessário uma única vez. Evidências são priorizadas por citações,
+atribuições e números ligados aos claims; quando o orçamento exige recorte, janelas
+relevantes e marcadores explícitos preservam o contexto disponível. Cobertura parcial impede
+`pass` ou bloqueia a chamada como evidência insuficiente. O resultado continua no contrato
+`review-v1`, vinculado ao hash integral e à configuração efetiva. Aliases e IDs inexistentes,
+respostas truncadas e resultados incompatíveis são rejeitados. Severidade `critical`/`major`,
+claims contraditos e sinais de prompt injection elevam o resultado efetivo; falhas
+determinísticas bloqueantes nunca são sobrescritas. `thinkingLevel: minimal` é explícito e
+limitado à faixa do modelo.
 
 O orçamento de revisão é separado por provedor/operação: nesta homologação, até 2 chamadas por tarefa, 15.000 tokens, 4.000 de entrada estimada, 3.000 de saída e 7.000 tokens por minuto. A pré-checagem da redação reserva margem para a revisão posterior. A chamada real usou `gemini-3.5-flash-lite`; a configuração inicial com 3.8 Flash excedeu timeout e foi descartada.
 
@@ -91,7 +96,10 @@ obrigatórias.
 evidências, manifesto de imagem, importação, validação editorial, aprovação humana, integridade
 e journal. `repair-classification` e `repair-review-finding` aplicam somente correções
 mecânicas estreitas baseadas em evidência e registram hashes anterior/posterior; não redigem
-conteúdo e não aprovam.
+conteúdo e não aprovam. `audit-corrections` identifica promoções factuais indevidas e citações
+ambíguas; `harden-historical-corrections` só rebaixa promoções históricas comprovadamente
+baseadas em fonte única para declaração atribuída. Nenhuma correção converte rumor em fato
+apenas por presença de número ou fonte.
 
 ## Exemplo operacional e recuperação
 

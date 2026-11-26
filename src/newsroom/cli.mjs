@@ -16,6 +16,8 @@ verify ID | prepare-image ID | import ID | quality ID
 eligibility ID
 repair-classification ID [--reason TEXTO]
 repair-review-finding ID --finding-id ID [--reason TEXTO]
+audit-corrections ID
+harden-historical-corrections ID [--reason TEXTO]
 enrich ID [--reason TEXTO]
 revise ID --file JSON --reason TEXTO
 review ID [--provider gemini] [--dry-run] [--confirm-free-tier]
@@ -46,13 +48,15 @@ const commandOptions={
   eligibility:[],
   'repair-classification':['reason'],
   'repair-review-finding':['finding-id','reason'],
+  'audit-corrections':[],
+  'harden-historical-corrections':['reason'],
   review:['provider','dry-run','confirm-free-tier','help'],
   'review-status':[],
   'review-history':[],
   run:['limit','dry-run','confirm-free-tier'],
   recover:['reason'],
 };
-const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','eligibility','repair-classification','repair-review-finding','review','review-status','review-history']);
+const needsId=new Set(['show','research','evidence','write','verify','prepare-image','import','enrich','revise','quality','eligibility','repair-classification','repair-review-finding','audit-corrections','harden-historical-corrections','review','review-status','review-history']);
 const booleans=new Set(['json','dry-run','confirm-free-tier','help']);
 const globalValues=new Set(['root','limit','url','provider','reason','file','finding-id']);
 
@@ -116,6 +120,8 @@ export async function main(argv=process.argv.slice(2)){
         check(opts['finding-id'],'CLI','Informe --finding-id.');
         result=await engine.repairReviewFinding(id,{findingId:opts['finding-id'],reason:opts.reason||'Correção mecânica baseada na evidência vinculada ao achado.'});
         break;
+      case 'audit-corrections':result=engine.auditCorrections(id);break;
+      case 'harden-historical-corrections':result=await engine.hardenHistoricalCorrections(id,{reason:opts.reason||'Auditoria da PD-006.6.1: fonte única não confirma independentemente um fato.'});break;
       case 'review':{
         if(opts.help){result={help:'Use review ID [--provider gemini] [--dry-run] [--confirm-free-tier]. O resultado é privado e vinculado ao hash do conteúdo.'};break;}
         result=await reviewEngine.review(id,{provider:opts.provider,freeTierConfirmed:!!opts['confirm-free-tier'],dryRun:!!opts['dry-run']});break;
