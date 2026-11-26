@@ -7,20 +7,27 @@ import { validate, resolveImage } from './validator.mjs';
 import { transition } from './lifecycle.mjs';
 import { filesUnder, confined, jsonBytes } from './repository.mjs';
 
-export function publicArticle(input, target, now) {
+export function publicArticle(input, target, now, {policyAuthorized = false} = {}) {
   const a = input.article;
   const common = {
     title: a.title, slug: a.slug, summary: a.summary, category: a.category,
     tags: a.tags, sections: a.sections, image: a.image.key,
     editorial: a.editorial,
     sources: a.sources.map(({ name, url, checkedAt, kind, publishedDate }) => ({ name, url, checkedAt, ...(kind ? { kind } : {}), ...(publishedDate ? { publishedDate } : {}) })),
-    verification: { checkedAt: now.slice(0,10), method: 'Revisão editorial explícita de fatos e direitos de imagem; validação estrutural automatizada não substitui essa revisão.' },
-    productionNote: 'Conteúdo encaminhado por revisão editorial institucional, com fontes documentadas.',
+    verification: {
+      checkedAt: now.slice(0,10),
+      method: policyAuthorized
+        ? 'Publicação autorizada por política em ambiente isolado; não representa aprovação humana.'
+        : 'Revisão editorial explícita de fatos e direitos de imagem; validação estrutural automatizada não substitui essa revisão.',
+    },
+    productionNote: policyAuthorized
+      ? 'Conteúdo publicado exclusivamente em simulação isolada por autorização de política automatizada.'
+      : 'Conteúdo encaminhado por revisão editorial institucional, com fontes documentadas.',
     ...(a.eventDate ? { eventDate: a.eventDate, eventLabel: a.eventLabel } : {})
   };
   const existingMaterial = target && Object.fromEntries(Object.keys(common).map(key => [key, target[key]]));
   if (target && hash({ ...common, verification: null }) === hash({ ...existingMaterial, verification: null })) return { article: target, changed: false };
-  const result = { ...(target || {}), ...common, date: target?.date || now.slice(0,10), ...(target ? {} : { publishedAt: now }), updatedAt: now, correctionNote: a.changeNote || 'Publicação inicial após validação e aprovação editorial explícita.' };
+  const result = { ...(target || {}), ...common, date: target?.date || now.slice(0,10), ...(target ? {} : { publishedAt: now }), updatedAt: now, correctionNote: a.changeNote || (policyAuthorized ? 'Simulação de publicação em ambiente isolado por política automatizada; não representa aprovação humana.' : 'Publicação inicial após validação e aprovação editorial explícita.') };
   if (!a.eventDate) { delete result.eventDate; delete result.eventLabel; }
   return { article: result, changed: true };
 }
@@ -61,18 +68,28 @@ export function verifyOutput(stage, expectedArticles) {
   return { htmlPages, articles: articles.length };
 }
 
-function prepare(repo, id) {
+function prepare(repo, id, {allowPolicyAuthorization = false, policyContextHash = null} = {}) {
   const record = repo.get(id);
-  ensure(record.state === 'approved' && record.approval, 'NOT_APPROVED', 'Publicação exige aprovação editorial explícita.');
+  ensure(record.state === 'approved', 'NOT_APPROVED', 'Publicação exige autorização editorial.');
   const result = validate(repo, record.input);
   ensure(result.valid, 'VALIDATION_FAILED', 'Validações obrigatórias falharam.', result);
-  ensure(result.contentHash === record.approval.contentHash, 'APPROVAL_CHANGED', 'Conteúdo, alvo ou imagem mudou depois da aprovação. Revalide e aprove novamente.');
-  ensure(result.warnings.every(w=>record.approval.acknowledgedWarnings.includes(w.code)), 'NEW_WARNINGS', 'Existem avisos ainda não revisados.', result.warnings);
+  const policyAuthorized = Boolean(record.policyAuthorization);
+  if (policyAuthorized) {
+    ensure(allowPolicyAuthorization && record.approval === null, 'POLICY_AUTHORIZATION_BLOCKED', 'Autorização automatizada permitida somente em ambiente isolado.');
+    ensure(record.policyAuthorization.origin === 'policy-automated' && record.policyAuthorization.contentHash === result.contentHash, 'POLICY_AUTHORIZATION_CHANGED', 'Conteúdo, alvo, imagem ou direitos mudaram após a autorização por política.');
+    ensure(typeof policyContextHash === 'string' && policyContextHash === record.policyAuthorization.contextHash, 'POLICY_AUTHORIZATION_CHANGED', 'Revisão, evidências ou política mudaram após a autorização por política.');
+    ensure(Date.parse(record.policyAuthorization.expiresAt) > Date.parse(repo.now()), 'POLICY_AUTHORIZATION_EXPIRED', 'Autorização por política expirada.');
+    ensure(result.warnings.every(w=>record.policyAuthorization.acknowledgedWarnings.includes(w.code)), 'NEW_WARNINGS', 'Existem avisos não cobertos pela política.', result.warnings);
+  } else {
+    ensure(record.approval, 'NOT_APPROVED', 'Publicação exige aprovação editorial explícita.');
+    ensure(result.contentHash === record.approval.contentHash, 'APPROVAL_CHANGED', 'Conteúdo, alvo ou imagem mudou depois da aprovação. Revalide e aprove novamente.');
+    ensure(result.warnings.every(w=>record.approval.acknowledgedWarnings.includes(w.code)), 'NEW_WARNINGS', 'Existem avisos ainda não revisados.', result.warnings);
+  }
   ensure(!record.input.synthetic || repo.config.allowSyntheticPublication === true, 'SYNTHETIC_PUBLICATION', 'Fixtures sintéticas só podem ser publicadas em cópia temporária explicitamente configurada.');
   const articles = repo.read('content/articles.json'), images = repo.read('content/images.json');
   const target = articles.find(a=>a.slug===record.input.targetSlug);
   const image = resolveImage(repo,record.input,articles,images), now = repo.now();
-  const projection = publicArticle(record.input,target,now);
+  const projection = publicArticle(record.input,target,now,{policyAuthorized});
   if (target) articles[articles.indexOf(target)] = projection.article; else articles.push(projection.article);
   if (!Object.hasOwn(images,record.input.article.image.key)) images[record.input.article.image.key] = image.record;
   return { record, result, articles, images, image, projection, now };
@@ -101,12 +118,12 @@ function stagePublication(repo, plan, stage) {
   return verifyOutput(stage,plan.articles.length);
 }
 
-export function publish(repo, id, { dryRun = false } = {}) {
+export function publish(repo, id, { dryRun = false, allowPolicyAuthorization = false, policyContextHash = null } = {}) {
   const execute = () => {
     ensure(!fs.existsSync(repo.journal), 'RECOVERY_REQUIRED','Execute recover antes de publicar ou simular.');
     const initial = repo.get(id);
     if (initial.state === 'published') return { id, dryRun, idempotent:true, changed:false, receipt:initial.receipt, files:[] };
-    const fingerprint = repo.fingerprint(), plan = prepare(repo,id);
+    const fingerprint = repo.fingerprint(), plan = prepare(repo,id,{allowPolicyAuthorization,policyContextHash});
     const stage = fs.mkdtempSync(path.join(os.tmpdir(),'pulso-editorial-'));
     try {
       const output = stagePublication(repo,plan,stage);
@@ -114,7 +131,7 @@ export function publish(repo, id, { dryRun = false } = {}) {
       const changes = [...filesUnder(stage,'public'), ...['content/articles.json','content/images.json'].map(relative=>({relative,file:confined(stage,relative)}))]
         .map(({relative,file})=>({relative,bytes:fs.readFileSync(file)}))
         .filter(({relative,bytes})=>!fs.existsSync(repo.file(relative)) || hash(fs.readFileSync(repo.file(relative)))!==hash(bytes));
-      const receipt = { at:plan.now, slug:plan.projection.article.slug, operation:plan.record.input.operation, publishedAt:plan.projection.article.publishedAt || plan.projection.article.date, approvedHash:plan.result.contentHash, publicArticleHash:hash(plan.projection.article), changed:plan.projection.changed };
+      const receipt = { at:plan.now, slug:plan.projection.article.slug, operation:plan.record.input.operation, publishedAt:plan.projection.article.publishedAt || plan.projection.article.date, approvedHash:plan.result.contentHash, publicArticleHash:hash(plan.projection.article), changed:plan.projection.changed, authorizationType:plan.record.approval ? 'human' : 'policy-automated', ...(plan.record.policyAuthorization ? {policyAuthorizationId:plan.record.policyAuthorization.id} : {}) };
       const finalRecord = transition(plan.record,'published',{action:'publish',at:plan.now,reason:plan.projection.changed?'Publicação validada em área isolada.':'Atualização sem alteração efetiva; datas públicas preservadas.',patch:{receipt}});
       const stateRelative=`editorial/data/records/${id}.json`;
       ensure(jsonBytes(finalRecord).length<=repo.config.limits.stateBytes,'STATE_LIMIT','Histórico acima do limite.');

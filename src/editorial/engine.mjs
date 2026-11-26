@@ -5,7 +5,7 @@ import { validate } from './validator.mjs';
 import { publish } from './publisher.mjs';
 
 export class EditorialEngine {
-  constructor(repository) { this.repo = repository; }
+  constructor(repository,{allowPolicyAuthorization=false}={}) { this.repo = repository; this.allowPolicyAuthorization=allowPolicyAuthorization; }
   import(file) {
     return this.repo.withLock(()=>{
       const input=this.repo.input(file);
@@ -23,12 +23,12 @@ export class EditorialEngine {
       // A draft must first retain an explicit rejection event when edited in place.
       let record=old;
       if(record.state==='draft')record=transition(record,'rejected',{action:'reject',reason:'Revisão controlada do rascunho: '+reason,at:this.repo.now()});
-      record=transition(record,'draft',{action:'revise',reason,at:this.repo.now(),patch:{input,validation:null,approval:null,receipt:null}});
+      record=transition(record,'draft',{action:'revise',reason,at:this.repo.now(),patch:{input,validation:null,approval:null,policyAuthorization:null,receipt:null}});
       this.repo.save(record);return record;
     });
   }
   draft(id,reason) {
-    return this.repo.withLock(()=>{const old=this.repo.get(id);const record=transition(old,'draft',{action:'reopen',reason,at:this.repo.now(),patch:{validation:null,approval:null}});this.repo.save(record);return record;});
+    return this.repo.withLock(()=>{const old=this.repo.get(id);const record=transition(old,'draft',{action:'reopen',reason,at:this.repo.now(),patch:{validation:null,approval:null,policyAuthorization:null}});this.repo.save(record);return record;});
   }
   validate(id) {
     return this.repo.withLock(()=>{
@@ -48,11 +48,23 @@ export class EditorialEngine {
       ensure(result.valid && result.contentHash===old.validation.contentHash,'VALIDATION_CHANGED','Conteúdo, alvo ou imagens mudaram; reabra e valide novamente.',result);
       ensure(acknowledgeWarnings || !result.warnings.length,'WARNINGS_REVIEW_REQUIRED','Leia e reconheça os avisos antes de aprovar.',result.warnings);
       const approval={reviewer:reviewer.trim(),at:this.repo.now(),contentHash:result.contentHash,factsReviewed:true,imageRightsReviewed:true,acknowledgedWarnings:result.warnings.map(w=>w.code),reason};
-      const record=transition(old,'approved',{action:'approve',actor:reviewer.trim(),reason,at:this.repo.now(),patch:{approval}});
+      const record=transition(old,'approved',{action:'approve',actor:reviewer.trim(),reason,at:this.repo.now(),patch:{approval,policyAuthorization:null}});
       this.repo.save(record);return record;
     });
   }
-  reject(id,reason) {return this.repo.withLock(()=>{const record=transition(this.repo.get(id),'rejected',{action:'reject',reason,at:this.repo.now(),patch:{approval:null,validation:null}});this.repo.save(record);return record;});}
-  publish(id,options) {return publish(this.repo,id,options);}
+  reject(id,reason) {return this.repo.withLock(()=>{const record=transition(this.repo.get(id),'rejected',{action:'reject',reason,at:this.repo.now(),patch:{approval:null,policyAuthorization:null,validation:null}});this.repo.save(record);return record;});}
+  authorizePolicy(id,{decision,contextHash,expiresAt,reason='Autorização por política em ambiente isolado.'}={}) {
+    return this.repo.withLock(()=>{
+      ensure(this.allowPolicyAuthorization,'POLICY_AUTHORIZATION_BLOCKED','Autorização por política não habilitada neste ambiente.');
+      ensure(decision?.decisionType==='policy-automated'&&decision.mode==='autonomous-controlled'&&decision.status==='simulation-eligible'&&decision.risk?.level==='low'&&decision.publicationSimulationOnly===true&&decision.blockers?.length===0,'POLICY_AUTHORIZATION_BLOCKED','Decisão de política não habilita autorização isolada.');
+      ensure(/^[a-f0-9]{64}$/.test(contextHash||''),'POLICY_CONTEXT','Hash do contexto de política inválido.');
+      ensure(Number.isFinite(Date.parse(expiresAt))&&Date.parse(expiresAt)>Date.parse(this.repo.now()),'POLICY_AUTHORIZATION_EXPIRED','Expiração da autorização inválida.');
+      const old=this.repo.get(id);ensure(old.state==='validated'&&old.validation?.valid,'NOT_VALIDATED','Autorização por política exige validação vigente.');
+      const policyAuthorization={id:decision.decisionId,origin:'policy-automated',mode:decision.mode,contentHash:old.validation.contentHash,reviewHash:decision.contentHash,contextHash,policyVersion:decision.policyVersion||'1.0',riskLevel:decision.risk.level,criteria:{blockers:decision.blockers,riskFactors:decision.risk.factors},imageRights:true,reviewId:decision.reviewId,grantedAt:this.repo.now(),expiresAt,acknowledgedWarnings:old.validation.warnings.map(w=>w.code),isolated:true};
+      const record=transition(old,'approved',{action:'authorize-policy',actor:'policy-automated',reason,at:this.repo.now(),patch:{approval:null,policyAuthorization}});
+      this.repo.save(record);return record;
+    });
+  }
+  publish(id,options={}) {return publish(this.repo,id,{...options,allowPolicyAuthorization:this.allowPolicyAuthorization});}
   recover({breakLock=false,reason}={}) {if(breakLock)this.repo.breakOrphanLock(reason);return this.repo.withLock(()=>this.repo.recover(),{recovery:true});}
 }

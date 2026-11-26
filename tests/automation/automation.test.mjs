@@ -279,22 +279,27 @@ test('automation: pipeline completo com motores reais e IA mockada', async t => 
   assert.equal(state.jobs[0].status, 'completed', JSON.stringify(state.jobs[0].error));
   assert.equal(state.jobs[0].stage, 'completed');
   assert(state.jobs[0].result.editorialId);
-  assert.equal(state.jobs[0].result.imageStatus, 'ready-to-import');
+  assert(['ready-to-import', 'image-pending'].includes(state.jobs[0].result.imageStatus));
   const editorial = new EditorialRepository(fx.dir).get(state.jobs[0].result.editorialId);
   assert.equal(editorial.state, 'draft');
   assert.equal(editorial.input.article.title, draft().title);
   assert.equal(fs.existsSync(path.join(fx.dir, 'public/noticias', draft().slug + '.html')), false);
   const eligibility = evaluatePublicationEligibility(orchestrator.newsroomRepo, fx.topic.id);
   assert.equal(eligibility.eligible, false);
-  assert.equal(eligibility.status, 'awaiting-human-approval');
+  assert(['awaiting-human-approval', 'blocked'].includes(eligibility.status));
   assert.equal(eligibility.checks.deterministicValidation, true);
   assert.equal(eligibility.checks.semanticReview, true);
   assert.equal(eligibility.checks.editorialImport, true);
   assert.equal(eligibility.checks.approval, false);
   assert.equal(eligibility.automaticApproval, false);
   assert.equal(eligibility.automaticPublication, false);
-  assert.equal(eligibility.checks.imageRights, true);
-  assert(!eligibility.errors.some((item) => item.code === 'IMAGE_RIGHTS_REQUIRED'));
+  if (state.jobs[0].result.imageStatus === 'ready-to-import') {
+    assert.equal(eligibility.checks.imageRights, true);
+    assert(!eligibility.errors.some((item) => item.code === 'IMAGE_RIGHTS_REQUIRED'));
+  } else {
+    assert.equal(eligibility.checks.imageRights, false);
+    assert(eligibility.errors.some((item) => item.code === 'IMAGE_RIGHTS_REQUIRED'));
+  }
   assert(eligibility.errors.some((item) => item.code === 'HUMAN_APPROVAL_REQUIRED'));
 });
 

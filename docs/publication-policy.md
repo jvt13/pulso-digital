@@ -42,3 +42,14 @@ reviewer ou receipt de publicação.
 
 O avaliador sempre retorna `publicationAllowed=false` nesta versão. Publicação real continua
 exclusivamente no fluxo editorial explícito.
+
+## Autorização isolada
+
+O motor editorial pode criar `policyAuthorization`, distinta de `approval`, somente quando
+instanciado explicitamente para ambiente isolado. A autorização registra decisão, hash do
+conteúdo, hash do contexto de revisão/evidências/política, risco, direitos, validade e
+critérios atendidos. O publisher exige o hash de contexto atual e gera receipt
+`authorizationType: policy-automated`.
+
+O ambiente operacional não habilita `allowPolicyAuthorization`; portanto o caminho permanece
+restrito à simulação e aos testes.

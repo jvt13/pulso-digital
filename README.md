@@ -1,4 +1,4 @@
-# Pulso Digital — v1.5.0
+# Pulso Digital — v1.5.1
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -90,7 +90,7 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
 ## Automação editorial supervisionada
-O orquestrador da versão 1.5.0 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+O orquestrador da versão 1.5.1 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
 
 ### Publicação controlada
 
@@ -101,6 +101,7 @@ O orquestrador da versão 1.5.0 coordena radar, seleção, pesquisa, evidências
   duplicidade, limites diários/categoria e circuit breaker são avaliados separadamente.
 - Nenhuma decisão automatizada é registrada como aprovação humana.
 - Critérios completos: [docs/publication-policy.md](docs/publication-policy.md).
+- Preparação de produção: [docs/vps-deployment-checklist.md](docs/vps-deployment-checklist.md).
 
 ## Relatórios
 

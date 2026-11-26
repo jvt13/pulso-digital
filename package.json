@@ -1,6 +1,6 @@
 {
   "name": "pulso-digital",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "newsroom": "node src/newsroom/cli.mjs",
     "storage": "node src/storage/cli.mjs",
     "automation": "node src/automation/cli.mjs",
-    "reports": "node src/reports/cli.mjs"
+    "reports": "node src/reports/cli.mjs",
+    "demo:policy": "node tools/isolated-publication-demo.mjs"
   },
   "engines": {
     "node": ">=24"

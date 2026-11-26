@@ -157,6 +157,10 @@ export function createEncryptedReportArchive(root, files, {archivePath, key} = {
 }
 
 export function verifyEncryptedReportArchive(root, {archivePath, key} = {}) {
+  return archiveContents(root, {archivePath, key}).summary;
+}
+
+function archiveContents(root, {archivePath, key} = {}) {
   check(Buffer.isBuffer(key) && key.length === 32, 'STORAGE_KEY_INVALID', 'Chave de arquivo inválida.');
   const bytes = fs.readFileSync(path.resolve(root, archivePath));
   check(bytes.subarray(0, MAGIC.length).equals(MAGIC), 'ARCHIVE_INVALID', 'Cabeçalho do arquivo de segurança inválido.');
@@ -175,7 +179,23 @@ export function verifyEncryptedReportArchive(root, {archivePath, key} = {}) {
     const content = Buffer.from(file.content, 'base64');
     check(content.length === file.bytes && sha256(content) === file.sha256, 'ARCHIVE_INVALID', `Arquivo interno diverge: ${file.path}.`);
   }
-  return {authenticated: true, files: body.files.length, totalBytes: body.files.reduce((total, item) => total + item.bytes, 0), createdAt: body.createdAt, archiveSha256: sha256(bytes), filesList: body.files.map(({content, ...item}) => item)};
+  const summary = {authenticated: true, files: body.files.length, totalBytes: body.files.reduce((total, item) => total + item.bytes, 0), createdAt: body.createdAt, archiveSha256: sha256(bytes), filesList: body.files.map(({content, ...item}) => item)};
+  return {body, summary};
+}
+
+export function recoverArchivedReportFile(root, {archivePath, key, path: relativePath, target} = {}) {
+  check(typeof relativePath === 'string' && relativePath.length > 0 && target, 'RECOVERY_TARGET', 'Arquivo e destino de recuperação são obrigatórios.');
+  const {body} = archiveContents(root, {archivePath, key});
+  const file = body.files.find((item) => item.path === relativePath);
+  check(file, 'RECOVERY_NOT_FOUND', 'Arquivo não encontrado no arquivo de segurança.');
+  const content = Buffer.from(file.content, 'base64');
+  check(content.length === file.bytes && sha256(content) === file.sha256, 'ARCHIVE_INVALID', 'Hash do arquivo recuperado diverge.');
+  const destination = path.resolve(root, target);
+  check(!destination.startsWith(path.join(root, 'reports') + path.sep), 'RECOVERY_SCOPE', 'Recuperação deve ocorrer em diretório isolado fora de reports.');
+  if (!fs.existsSync(path.dirname(destination))) fs.mkdirSync(path.dirname(destination), {recursive: true, mode: 0o700});
+  fs.writeFileSync(destination, content, {flag: 'wx', mode: 0o600});
+  check(sha256(fs.readFileSync(destination)) === file.sha256, 'ARCHIVE_INVALID', 'Arquivo recuperado diverge do original.');
+  return {path: relativePath, target: relative(root, destination), bytes: file.bytes, sha256: file.sha256, verified: true};
 }
 
 export function removeArchivedReportFiles(root, removable, {archivePath, key} = {}) {

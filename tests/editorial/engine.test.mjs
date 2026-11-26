@@ -147,6 +147,62 @@ test('prévia privada usa layout real sem aprovar, publicar ou alterar public',t
   assert.deepEqual(publicSnapshot(env.repo),before);
   assert.equal(env.repo.get(id).state,'validated');
 });
+
+test('publicação isolada aceita autorização por política distinta de aprovação humana',t=>{
+  const env=sandbox(t),id=env.engine.import(input(env.repo)).input.id;
+  env.engine.validate(id);
+  const isolated=new EditorialEngine(env.repo,{allowPolicyAuthorization:true});
+  assert.throws(()=>env.engine.authorizePolicy(id,{decision:{},contextHash:'a'.repeat(64),expiresAt:new Date(Date.now()+3600000).toISOString()}),{code:'POLICY_AUTHORIZATION_BLOCKED'});
+  const decision={decisionId:'publication-policy-fixture',decisionType:'policy-automated',mode:'autonomous-controlled',status:'simulation-eligible',publicationSimulationOnly:true,blockers:[],contentHash:'b'.repeat(64),reviewId:'review-fixture',risk:{level:'low',factors:[]}};
+  const contextHash='a'.repeat(64),expiresAt=new Date(Date.now()+3600000).toISOString();
+  const authorized=isolated.authorizePolicy(id,{decision,contextHash,expiresAt});
+  assert.equal(authorized.state,'approved');
+  assert.equal(authorized.approval,null);
+  assert.equal(authorized.policyAuthorization.origin,'policy-automated');
+  assert.throws(()=>isolated.publish(id,{dryRun:true,policyContextHash:'c'.repeat(64)}),{code:'POLICY_AUTHORIZATION_CHANGED'});
+  const published=isolated.publish(id,{policyContextHash:contextHash});
+  assert.equal(published.expected.state,'published');
+  const record=env.repo.get(id);
+  assert.equal(record.approval,null);
+  assert.equal(record.receipt.authorizationType,'policy-automated');
+  assert.equal(record.receipt.policyAuthorizationId,'publication-policy-fixture');
+  const article=env.repo.read('content/articles.json').find(item=>item.slug===fixture.article.slug);
+  assert.match(article.correctionNote,/política automatizada/);
+  assert.equal(isolated.publish(id,{policyContextHash:contextHash}).idempotent,true);
+});
+
+test('alteração editorial remove autorização por política',t=>{
+  const env=sandbox(t),id=env.engine.import(input(env.repo)).input.id;
+  env.engine.validate(id);
+  const isolated=new EditorialEngine(env.repo,{allowPolicyAuthorization:true});
+  const decision={decisionId:'publication-policy-fixture-2',decisionType:'policy-automated',mode:'autonomous-controlled',status:'simulation-eligible',publicationSimulationOnly:true,blockers:[],contentHash:'d'.repeat(64),reviewId:'review-fixture',risk:{level:'low',factors:[]}};
+  isolated.authorizePolicy(id,{decision,contextHash:'e'.repeat(64),expiresAt:new Date(Date.now()+3600000).toISOString()});
+  const revised=structuredClone(fixture);revised.article.summary='Resumo sintético revisado para invalidar autorização.';
+  env.engine.revise(id,input(env.repo,revised,'revision.json'),'Revisão sintética que exige nova avaliação.');
+  const record=env.repo.get(id);
+  assert.equal(record.policyAuthorization,null);
+  assert.equal(record.approval,null);
+  assert.equal(record.state,'draft');
+});
+
+test('publicação por política isolada recupera interrupção e permanece idempotente',t=>{
+  const env=sandbox(t),id=env.engine.import(input(env.repo)).input.id;
+  env.engine.validate(id);
+  const decision={decisionId:'publication-policy-recovery',decisionType:'policy-automated',mode:'autonomous-controlled',status:'simulation-eligible',publicationSimulationOnly:true,blockers:[],contentHash:'f'.repeat(64),reviewId:'review-fixture',risk:{level:'low',factors:[]}};
+  const contextHash='1'.repeat(64),expiresAt=new Date(Date.now()+3600000).toISOString();
+  new EditorialEngine(env.repo,{allowPolicyAuthorization:true}).authorizePolicy(id,{decision,contextHash,expiresAt});
+  let armed=true;
+  const faultyRepo=new Repository(env.root,{fault:(point,{index}={})=>{if(armed&&point==='after-write'&&index===2){armed=false;const error=new Error('interrupção sintética da política');error.simulatedInterruption=true;throw error;}}});
+  const faultyEngine=new EditorialEngine(faultyRepo,{allowPolicyAuthorization:true});
+  assert.throws(()=>faultyEngine.publish(id,{policyContextHash:contextHash}),/interrupção sintética/);
+  assert.equal(fs.existsSync(faultyRepo.journal),true);
+  assert.equal(faultyEngine.recover().action,'rolled-back');
+  const fresh=new EditorialEngine(new Repository(env.root),{allowPolicyAuthorization:true});
+  const published=fresh.publish(id,{policyContextHash:contextHash});
+  assert.equal(published.expected.state,'published');
+  assert.equal(published.receipt.authorizationType,'policy-automated');
+  assert.equal(fresh.publish(id,{policyContextHash:contextHash}).idempotent,true);
+});
 test('ciclo completo, publicação válida, isolamento privado e repetição idempotente',t=>{
   const env=sandbox(t),id=approve(env);const result=env.engine.publish(id);assert.equal(result.expected.articles,9);
   assert.deepEqual(env.repo.get(id).history.map(h=>h.to),['pending','draft','validated','approved','published']);

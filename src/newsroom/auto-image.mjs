@@ -15,7 +15,7 @@ function shortSubject(topic) {
   return text.length <= 90 ? text : `${text.slice(0, 87).trim()}...`;
 }
 
-export function prepareAutomaticIllustration(root, topicId, record, {now = new Date().toISOString()} = {}) {
+export function prepareAutomaticIllustration(root, topicId, record, {now = new Date().toISOString(), spawn = spawnSync} = {}) {
   const base = `newsroom/data/images/${topicId}`;
   const manifestPath = file(root, `${base}/manifest.json`);
   if (fs.existsSync(manifestPath)) return inspectImage(root, topicId);
@@ -25,14 +25,22 @@ export function prepareAutomaticIllustration(root, topicId, record, {now = new D
   check(!fs.existsSync(original), 'IMAGE_CONFLICT', 'Original de imagem já existe sem manifesto; não será sobrescrito.');
   const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../newsroom/tools/generate_illustration.py');
   const seed = Number.parseInt(hash(record.topic || topicId).slice(0, 8), 16);
-  const generated = spawnSync('python', [script, original, record.category || 'tendencias', String(seed)], {
+  const generated = spawn('python', [script, original, record.category || 'tendencias', String(seed)], {
     shell: false,
     timeout: 30000,
     encoding: 'utf8',
     windowsHide: true,
     maxBuffer: 4096,
   });
-  check(!generated.error && generated.status === 0 && fs.existsSync(original), 'IMAGE_GENERATION', 'Não foi possível gerar a ilustração editorial local.');
+  if (generated.error || generated.status !== 0 || !fs.existsSync(original)) {
+    return {
+      ready: false,
+      status: 'image-pending',
+      reason: 'Gerador local de ilustração indisponível; instale Python e Pillow ou forneça um manifesto autorizado.',
+      generationError: generated.error?.code || 'IMAGE_GENERATOR_UNAVAILABLE',
+      automatic: false,
+    };
+  }
   const subject = shortSubject(record.topic);
   const checkedAt = now.slice(0, 10);
   const manifest = {

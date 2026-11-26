@@ -5,6 +5,10 @@ import {buildReviewContext, reviewConfiguration} from '../../src/newsroom/review
 import {reviewContentFingerprint} from '../../src/newsroom/review/hash.mjs';
 import {effectiveResult} from '../../src/newsroom/review/findings.mjs';
 import {reviewTopicCallLimit, validateReviewTopicLimits} from '../../src/newsroom/review/limits.mjs';
+import {prepareAutomaticIllustration} from '../../src/newsroom/auto-image.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   auditMechanicalCorrections,
   correctAttributedQuoteFromFinding,
@@ -211,4 +215,16 @@ test('review context: limite por pauta usa exceção explícita e mantém padrã
   assert.equal(reviewTopicCallLimit(config, 'pauta-000000000000000000000000'), 2);
   assert.doesNotThrow(() => validateReviewTopicLimits(config));
   assert.throws(() => validateReviewTopicLimits({...config, topicOverrides: [...config.topicOverrides, ...config.topicOverrides]}), {code: 'CONFIG'});
+});
+
+test('review context: ausência do gerador de imagem mantém image-pending sem falhar a matéria', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pulso-auto-image-'));
+  t.after(() => fs.rmSync(root, {recursive: true, force: true}));
+  const result = prepareAutomaticIllustration(root, topicId, {topic: 'Fixture', category: 'ia'}, {
+    spawn: () => ({status: 1, error: null, stdout: '', stderr: 'python ausente'}),
+  });
+  assert.equal(result.ready, false);
+  assert.equal(result.status, 'image-pending');
+  assert.equal(result.generationError, 'IMAGE_GENERATOR_UNAVAILABLE');
+  assert.equal(fs.existsSync(path.join(root, 'newsroom', 'data', 'images', topicId, 'manifest.json')), false);
 });

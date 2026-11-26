@@ -9,8 +9,10 @@ import {
   executeReportCleanup,
   inventoryReports,
   removeArchivedReportFiles,
+  recoverArchivedReportFile,
   verifyEncryptedReportArchive,
 } from '../../src/reports/maintenance.mjs';
+import {sha256File} from '../../src/storage/common.mjs';
 
 const key = Buffer.alloc(32, 7);
 
@@ -94,6 +96,23 @@ test('reports: limpeza recusa candidato ausente do arquivo de segurança', t => 
   const archivePath = 'storage/archive/reports/guard.pulso';
   archiveCleanupCandidates(fx.root, {archivePath, key});
   assert.throws(() => removeArchivedReportFiles(fx.root, [{path: '../outside.txt', bytes: 1, sha256: '0'.repeat(64)}], {archivePath, key}), {code: 'REPORT_SCOPE'});
+});
+
+test('reports: recuperação seletiva restaura bytes exatos em diretório isolado', t => {
+  const fx = fixture(t);
+  const archivePath = 'storage/archive/reports/selective.pulso';
+  const created = archiveCleanupCandidates(fx.root, {archivePath, key});
+  const selected = created.plan.removable[0];
+  const isolated = fs.mkdtempSync(path.join(os.tmpdir(), 'pulso-report-recovery-'));
+  t.after(() => fs.rmSync(isolated, {recursive: true, force: true}));
+  const recovered = recoverArchivedReportFile(fx.root, {
+    archivePath,
+    key,
+    path: selected.path,
+    target: path.relative(fx.root, path.join(isolated, 'recovered.bin')),
+  });
+  assert.equal(recovered.verified, true);
+  assert.equal(sha256File(path.join(isolated, 'recovered.bin')), selected.sha256);
 });
 
 test('reports: symlink ou junction interrompe o inventário', t => {
