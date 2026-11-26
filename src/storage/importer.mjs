@@ -110,14 +110,14 @@ function insertSourceFiles(db, files) {
   for (const file of files) statement.run(file.path, file.category, file.bytes, file.sha256, file.modifiedAt, file.content);
 }
 
-function importConfigs(db, files) {
+export function importConfigs(db, files) {
   const statement = db.prepare('INSERT INTO configs (path, category, canonical_json) VALUES (?, ?, ?)');
   for (const file of files.filter((item) => item.category === 'configuration')) {
     statement.run(file.path, file.category, file.content.toString('utf8'));
   }
 }
 
-function importRadar(db, state) {
+export function importRadar(db, state) {
   if (!state) return;
   for (const topic of state.topics || []) {
     db.prepare(`INSERT INTO radar_topics
@@ -164,7 +164,7 @@ function importRadar(db, state) {
   });
 }
 
-function importNewsroom(db, state) {
+export function importNewsroom(db, state) {
   if (!state) return;
   for (const [url, entry] of Object.entries(state.researchCache || {})) {
     if (url.startsWith('__')) continue;
@@ -314,7 +314,7 @@ function importNewsroom(db, state) {
   }
 }
 
-function importEditorial(db, files) {
+export function importEditorial(db, files) {
   const records = files.filter((file) => /^editorial\/data\/records\/[^/]+\.json$/.test(file.path));
   for (const file of records) {
     const record = parseJson(file, file.path);
@@ -350,7 +350,7 @@ function importEditorial(db, files) {
   }
 }
 
-function importPublications(db, articles, images) {
+export function importPublications(db, articles, images) {
   if (Array.isArray(articles)) {
     for (const article of articles) {
       db.prepare(`INSERT INTO publications (slug, title, category, published_at, updated_at, canonical_json)
@@ -372,7 +372,7 @@ function importPublications(db, articles, images) {
   }
 }
 
-function importReviews(db, state) {
+export function importReviews(db, state) {
   const statement=db.prepare(`INSERT INTO editorial_reviews
     (id, topic_id, sample_id, status, provider, model, prompt_version, schema_version, task_id,
      content_hash, configuration_hash, model_result, effective_result, human_review_required,
@@ -418,7 +418,7 @@ function importReviews(db, state) {
   for(const review of state.reviewSamples||[])insert(review,null,null);
 }
 
-function importImageAssets(db, files) {
+export function importImageAssets(db, files) {
   const statement = db.prepare(`INSERT INTO image_assets
     (path, topic_id, scope, name, bytes, sha256, media_type, width, height)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);

@@ -4,6 +4,7 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { ensure, hash, readInput, safeId, EditorialError } from './schema.mjs';
 import { verifyRecord } from './lifecycle.mjs';
+import { deleteOperationalRecord, operationalActive, readOperationalRecord, readOperationalRecords, writeOperationalRecords } from '../storage/operational.mjs';
 
 export function confined(root, relative) {
   ensure(typeof relative === 'string' && !relative.includes('\\') && !relative.includes('\0') && !path.posix.isAbsolute(relative) && !relative.split('/').some(p => !p || p === '.' || p === '..' || p.includes(':') || /[. ]$/.test(p) || /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|$)/i.test(p)), 'UNSAFE_PATH', 'Caminho fora dos diretórios autorizados.');
@@ -61,9 +62,11 @@ export class Repository {
   read(relative) { return readJson(this.file(relative), this.config.limits.stateBytes); }
   recordPath(id) { ensure(safeId(id), 'UNSAFE_ID', 'Identificador inválido.'); return this.file(`editorial/data/records/${id}.json`); }
   available(){ensure(this.heldLock||(!fs.existsSync(this.lock)&&!fs.existsSync(this.journal)),'RECOVERY_REQUIRED','Leitura consistente indisponível durante operação/recuperação; consulte status.');}
-  get(id) { this.available();return verifyRecord(readJson(this.recordPath(id), this.config.limits.stateBytes)); }
+  exists(id) { ensure(safeId(id), 'UNSAFE_ID', 'Identificador inválido.'); if (operationalActive(this.root)) return Boolean(readOperationalRecord(this.root, id)); return fs.existsSync(this.recordPath(id)); }
+  get(id) { this.available();if(operationalActive(this.root)){const record=readOperationalRecord(this.root,id);ensure(record,'NOT_FOUND','Registro editorial não encontrado.');return verifyRecord(record);}return verifyRecord(readJson(this.recordPath(id), this.config.limits.stateBytes)); }
   list() {
     this.available();
+    if (operationalActive(this.root)) return Object.values(readOperationalRecords(this.root)).map(verifyRecord);
     if (!fs.existsSync(this.file('editorial/data/records'))) return [];
     return filesUnder(this.root, 'editorial/data/records').map(({ relative }) => verifyRecord(this.read(relative)));
   }
@@ -72,7 +75,8 @@ export class Repository {
     verifyRecord(record);
     const bytes = jsonBytes(record);
     ensure(bytes.length <= this.config.limits.stateBytes, 'STATE_LIMIT', 'Histórico acima do limite; arquivamento explícito necessário.');
-    atomicWrite(this.recordPath(record.input.id), bytes);
+    if (operationalActive(this.root)) writeOperationalRecords(this.root, [record]);
+    else atomicWrite(this.recordPath(record.input.id), bytes);
   }
   input(relative) {
     const normalized = relative.replaceAll(path.sep, '/');
@@ -110,10 +114,41 @@ export class Repository {
     fs.rmdirSync(this.lock);
   }
   fingerprint() {
+    if (operationalActive(this.root)) {
+      const records = Object.values(readOperationalRecords(this.root));
+      const names = ['content/articles.json', 'content/images.json', 'config.json', 'package.json', 'editorial/config.json', 'src/build.mjs', 'src/art.mjs', ...filesUnder(this.root, 'public').map(f => f.relative)];
+      return hash([...records.sort((left,right)=>left.input.id.localeCompare(right.input.id)).map(record=>hash(record)), ...names.sort().map(relative => [relative, fileHash(this.file(relative))])]);
+    }
     const names = ['content/articles.json', 'content/images.json', 'config.json', 'package.json', 'editorial/config.json', 'src/build.mjs', 'src/art.mjs', ...filesUnder(this.root, 'public').map(f => f.relative), ...filesUnder(this.root, 'editorial/data/records').map(f => f.relative)];
     return hash(names.sort().map(relative => [relative, fileHash(this.file(relative))]));
   }
   transaction(changes) {
+    if (operationalActive(this.root)) {
+      const recordPattern = /^editorial\/data\/records\/([a-z0-9-]+)\.json$/;
+      const recordChanges = changes.filter(({ relative }) => recordPattern.test(relative));
+      if (recordChanges.length) {
+        const records = recordChanges.map(({ relative, bytes }) => {
+          const match = recordPattern.exec(relative);
+          const record = JSON.parse(bytes.toString('utf8'));
+          verifyRecord(record);
+          ensure(record.input?.id === match[1], 'JOURNAL_PATH', 'Registro não corresponde ao caminho do diário.');
+          return record;
+        });
+        const expectedHashes = {};
+        for (const record of records) {
+          const current = readOperationalRecord(this.root, record.input.id);
+          expectedHashes[record.input.id] = current ? hash(current) : null;
+        }
+        const fileChanges = changes.filter(({ relative }) => !recordPattern.test(relative));
+        const result = this._transactionFiles(fileChanges, {
+          afterApply: () => writeOperationalRecords(this.root, records, { expectedHashes }),
+        });
+        return { ...result, files: [...result.files, ...recordChanges.map(({ relative }) => relative)] };
+      }
+    }
+    return this._transactionFiles(changes);
+  }
+  _transactionFiles(changes, { afterApply = null } = {}) {
     ensure(this.heldLock,'LOCK_REQUIRED','Publicação exige o bloqueio editorial.');
     const id = crypto.randomUUID(), prefix = `editorial/data/transactions/${id}`;
     const entries = changes.map(({ relative, bytes }, i) => {
@@ -134,6 +169,7 @@ export class Repository {
         atomicWrite(this.file(entry.relative), fs.readFileSync(this.file(entry.prepared)));
         this.fault('after-write', { index, entry });
       });
+      if (afterApply) afterApply();
       manifest.phase = 'committed'; atomicWrite(this.journal, jsonBytes(manifest));
       this.fault('committed', manifest);
       atomicWrite(this.file(`${prefix}/manifest.json`),jsonBytes(manifest));

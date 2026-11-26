@@ -9,7 +9,7 @@ export class EditorialEngine {
   import(file) {
     return this.repo.withLock(()=>{
       const input=this.repo.input(file);
-      ensure(!fs.existsSync(this.repo.recordPath(input.id)),'DUPLICATE_ID','Identificador já importado; use revise para revisão controlada.');
+      ensure(!this.repo.exists(input.id),'DUPLICATE_ID','Identificador já importado; use revise para revisão controlada.');
       let record=transition(null,'pending',{action:'import',reason:'Entrada manual recebida; nenhuma publicação realizada.',at:this.repo.now(),patch:{recordVersion:'1.0',input,createdAt:this.repo.now(),validation:null,approval:null,receipt:null}});
       record=transition(record,'draft',{action:'draft',reason:'Rascunho aberto para revisão editorial.',at:this.repo.now()});
       this.repo.save(record); return record;

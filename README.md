@@ -1,4 +1,4 @@
-# Pulso Digital — v1.4.5
+# Pulso Digital — v1.4.6
 Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias e busca. Nome provisório: verificar disponibilidade de domínio e marca antes de publicar.
 
 ## Executar
@@ -41,6 +41,12 @@ Portal editorial estático, em português, com 8 matérias iniciais, 5 editorias
 - SQLCipher (`better-sqlite3-multiple-ciphers@13.2.0`, MIT) mantém checkpoints `storage/data/` criptografados em repouso. Os repositórios JSON continuam sendo a fonte operacional de verdade.
 - A chave `PULSO_STORAGE_KEY` fica apenas no ambiente ou `.env` ignorado. Sem a chave ou backup válido, o snapshot não é recuperável.
 - O storage não substitui os motores atuais, não acessa IA, não aprova, não publica e não inclui `.env`, credenciais ou `.git` no checkpoint.
+
+## SQLite operacional
+- A versão 1.4.6 adiciona `storage/data/operational.sqlcipher`, banco SQLCipher separado dos snapshots, com estados canônicos do radar, newsroom, editorial, consumo, revisões e assets privados.
+- A ativação é explícita: `storage migrate --dry-run`, `storage migrate`, `storage compare` e `storage activate`. O marcador assinado `storage/data/operational.json` define o backend ativo; os JSON permanecem como material legado de recuperação e não são mais escritos.
+- `storage backup`/`checkpoint` geram snapshots consistentes a partir do banco ativo; `storage status`, `storage metrics --json` e `storage verify` refletem o backend operacional.
+- Nenhuma chamada de IA, aprovação, publicação, mudança de design ou configuração de VPS é feita pela camada de armazenamento.
 
 ## GitHub Pages
 - Repositório: https://github.com/jvt13/pulso-digital

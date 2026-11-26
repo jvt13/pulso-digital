@@ -26,6 +26,12 @@ import {verifySnapshot, withManifestSignature, readSnapshotManifest} from '../..
 import {restoreSnapshot} from '../../src/storage/exporter.mjs';
 import {parseStorageKey, writeStorageKey, loadStorageKey} from '../../src/storage/env.mjs';
 import {safeRelativePath, sha256} from '../../src/storage/common.mjs';
+import {migrationPlan, migrateOperational, compareOperational, activateOperational, migrationStatus} from '../../src/storage/operational-migration.mjs';
+import {verifyOperationalDatabase, writeOperationalState} from '../../src/storage/operational.mjs';
+import {NewsroomRepository} from '../../src/newsroom/repository.mjs';
+import {RadarRepository} from '../../src/radar/repository.mjs';
+import {Repository as EditorialRepository} from '../../src/editorial/repository.mjs';
+import {transition} from '../../src/editorial/lifecycle.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const key = Buffer.alloc(32, 5);
@@ -50,7 +56,9 @@ function fixture(t) {
     schemaVersion: '1.0',
     topics: [{
       id: 'pauta-fixture',
+      schemaVersion: '1.0',
       topic: 'Fixture storage topic',
+      normalizedTopic: 'fixture storage topic',
       suggestedCategory: 'ia',
       status: 'queued',
       priority: 'media',
@@ -60,8 +68,14 @@ function fixture(t) {
       collectedAt: at,
       assessmentHash: 'a'.repeat(64),
       candidateType: 'event',
+      relatedTerms: [],
       signals: [{id: 'sig-fixture', provider: 'fixture', organization: 'fixture-org', region: 'BR', language: 'pt-BR', url: 'https://fixture.example/story', observedAt: at, weight: 1}],
+      sourceReferences: [],
+      duplicateReferences: [],
+      researchQueries: [],
       history: [{at, action: 'signal'}, {at, action: 'score', score: 72.5}],
+      classificationReason: 'fixture',
+      scoreBreakdown: {coverage: 75},
     }],
     providers: {fixture: {}},
     runs: [{id: 'run-fixture', at, status: 'complete'}],
@@ -189,11 +203,56 @@ function makeCheckpoint(t, fx, now = at) {
   return createCheckpoint(fx.dir, fx.config, fx.packageJson, key, {now});
 }
 
+function prepareOperationalFixture(t) {
+  const fx = fixture(t);
+  for (const name of ['radar/config.json', 'radar/sources.json', 'newsroom/config.json', 'editorial/config.json']) {
+    fs.copyFileSync(path.join(root, name), path.join(fx.dir, name));
+  }
+  const radarState = JSON.parse(fs.readFileSync(path.join(fx.dir, 'radar/data/state.json'), 'utf8'));
+  radarState.topics[0].id = 'pauta-' + 'a'.repeat(24);
+  writeJson(path.join(fx.dir, 'radar/data/state.json'), radarState);
+  const input = {
+    schemaVersion: '1.0',
+    id: 'newsroom-pauta-fixture',
+    operation: 'create',
+    targetSlug: null,
+    synthetic: false,
+    article: {
+      title: 'Fixture draft',
+      slug: 'fixture-draft',
+      summary: 'Fixture summary.',
+      category: 'ia',
+      tags: ['fixture'],
+      sections: [{title: 'Section one', paragraphs: ['Fixture paragraph.']}],
+      language: 'pt-BR',
+      editorial: {name: 'Pulso Digital', role: 'Edição institucional provisória'},
+      sources: [],
+      claims: [],
+      image: null,
+    },
+  };
+  const pending = transition(null, 'pending', {
+    action: 'import',
+    reason: 'fixture import',
+    at,
+    patch: {recordVersion: '1.0', input, createdAt: at, validation: null, approval: null, receipt: null},
+  });
+  const record = transition(pending, 'draft', {action: 'draft', reason: 'fixture draft', at});
+  writeJson(path.join(fx.dir, 'editorial/data/records/newsroom-pauta-fixture.json'), record);
+  const previousKey = process.env.PULSO_STORAGE_KEY;
+  process.env.PULSO_STORAGE_KEY = key.toString('base64url');
+  t.after(() => {
+    if (previousKey === undefined) delete process.env.PULSO_STORAGE_KEY;
+    else process.env.PULSO_STORAGE_KEY = previousKey;
+  });
+  return fx;
+}
+
 test('storage: migrations inicializam, repetem sem efeito e detectam alteração', t => {
   const fx = fixture(t);
   const dbFile = path.join(fx.dir, 'storage/data/test.sqlcipher');
   const first = openTestDatabase(dbFile);
-  assert.equal(first.pragma('user_version', {simple: true}), 3);
+  assert.equal(first.pragma('user_version', {simple: true}), 4);
   assert.equal(first.prepare('SELECT count(*) AS n FROM sqlite_master WHERE type = ?').get('table').n >= 10, true);
   const second = runMigrations(first, path.join(root, 'storage/migrations'), {now: () => at});
   assert.equal(second.applied.length, 0);
@@ -375,8 +434,8 @@ test('storage: CLI dry-run e status retornam JSON estruturado', t => {
 
 test('storage: migrations descobertas são versionadas e não beta', () => {
   const migrations = discoverMigrations(path.join(root, 'storage/migrations'));
-  assert.equal(migrations.length, 3);
-  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3]);
+  assert.equal(migrations.length, 4);
+  assert.deepEqual(migrations.map((migration) => migration.version), [1, 2, 3, 4]);
 });
 
 test('storage: banco privado não entra em public e storage/data é ignorado', t => {
@@ -395,4 +454,149 @@ test('storage: caminhos de restauração rejeitam traversal e absolutos', () => 
   assert.throws(() => safeRelativePath('/absolute'), {code: 'PATH_INVALID'});
   assert.throws(() => safeRelativePath('C:/absolute'), {code: 'PATH_INVALID'});
   assert.throws(() => safeRelativePath('radar//state.json'), {code: 'PATH_INVALID'});
+});
+
+test('storage: migração, comparação e ativação SQLite preservam JSON e dados', async t => {
+  const fx = prepareOperationalFixture(t);
+  const radarBefore = fs.readFileSync(path.join(fx.dir, 'radar/data/state.json'));
+  const newsroomBefore = fs.readFileSync(path.join(fx.dir, 'newsroom/data/state.json'));
+  const dry = migrationPlan(fx.dir, fx.config);
+  assert.equal(dry.dryRun, true);
+  assert.equal(dry.alreadyActive, false);
+  assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.json')), false);
+  assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.sqlcipher')), false);
+
+  const migrated = migrateOperational(fx.dir, fx.config, fx.packageJson, key);
+  assert.equal(migrated.status, 'pending');
+  assert.equal(fs.existsSync(path.join(fx.dir, migrated.pendingDatabase)), true);
+  assert.equal(migrated.comparison.equal, true);
+  assert.equal(migrated.comparison.differences.length, 0);
+  assert.equal(migrationStatus(fx.dir, fx.config, key).active, false);
+
+  const activeCompare = compareOperational(fx.dir, fx.config, key, {pending: true});
+  assert.equal(activeCompare.equal, true);
+  assert.equal(activeCompare.expected.counts.radarTopics, 1);
+  assert.equal(activeCompare.expected.counts.editorialRecords, 1);
+  assert.equal(activeCompare.expected.counts.assets, 3);
+
+  const activation = activateOperational(fx.dir, fx.config, fx.packageJson, key);
+  assert.equal(activation.backend, 'sqlite');
+  assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.sqlcipher')), true);
+  assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.json')), true);
+  assert.equal(migrationStatus(fx.dir, fx.config, key).active, true);
+  assert.equal(migrationStatus(fx.dir, fx.config, key).receipt.status, 'active');
+  assert.deepEqual(fs.readFileSync(path.join(fx.dir, 'radar/data/state.json')), radarBefore);
+  assert.deepEqual(fs.readFileSync(path.join(fx.dir, 'newsroom/data/state.json')), newsroomBefore);
+
+  const newsroomRepo = new NewsroomRepository(fx.dir);
+  const initialNewsroom = newsroomRepo.read();
+  assert.equal(Object.keys(initialNewsroom.topics).length, 1);
+  await newsroomRepo.withLock(async () => {
+    const state = newsroomRepo.read();
+    state.researchCache['https://fixture.example/new'] = {checkedAt: at, title: 'fixture new'};
+    newsroomRepo.save(state);
+  });
+  assert.equal(newsroomRepo.read().researchCache['https://fixture.example/new'].title, 'fixture new');
+  assert.deepEqual(fs.readFileSync(path.join(fx.dir, 'newsroom/data/state.json')), newsroomBefore);
+  assert.throws(
+    () => writeOperationalState(fx.dir, 'newsroom', initialNewsroom, {expectedHash: 'stale-hash'}),
+    {code: 'OPERATIONAL_CONFLICT'},
+  );
+
+  const radarRepo = new RadarRepository(fx.dir);
+  assert.equal(radarRepo.read().topics.length, 1);
+  await radarRepo.withLock(async () => {
+    const state = radarRepo.read();
+    state.runs.push({id: 'run-after-activation', at, status: 'complete'});
+    radarRepo.save(state);
+  });
+  assert.equal(radarRepo.read().runs.length, 2);
+  assert.deepEqual(fs.readFileSync(path.join(fx.dir, 'radar/data/state.json')), radarBefore);
+
+  const editorialRepo = new EditorialRepository(fx.dir);
+  assert.equal(editorialRepo.list().length, 1);
+  assert.equal(editorialRepo.exists('newsroom-pauta-fixture'), true);
+  const editorialRecord = editorialRepo.get('newsroom-pauta-fixture');
+  assert.equal(editorialRecord.state, 'draft');
+  editorialRepo.withLock(() => editorialRepo.save(editorialRecord));
+  const legacyRecordBefore = fs.readFileSync(path.join(fx.dir, 'editorial/data/records/newsroom-pauta-fixture.json'));
+  editorialRepo.withLock(() => {
+    const validated = transition(editorialRepo.get('newsroom-pauta-fixture'), 'validated', {
+      action: 'validate',
+      reason: 'fixture validation',
+      at,
+      patch: {validation: {valid: true, contentHash: 'fixture'}, approval: null},
+    });
+    const result = editorialRepo.transaction([
+      {relative: 'editorial/data/records/newsroom-pauta-fixture.json', bytes: Buffer.from(JSON.stringify(validated))},
+      {relative: 'public/fixture-operational.txt', bytes: Buffer.from('operational public fixture\n')},
+    ]);
+    assert(result.files.includes('editorial/data/records/newsroom-pauta-fixture.json'));
+    assert(result.files.includes('public/fixture-operational.txt'));
+  });
+  assert.equal(editorialRepo.get('newsroom-pauta-fixture').state, 'validated');
+  assert.deepEqual(fs.readFileSync(path.join(fx.dir, 'editorial/data/records/newsroom-pauta-fixture.json')), legacyRecordBefore);
+  assert.equal(fs.readFileSync(path.join(fx.dir, 'public/fixture-operational.txt'), 'utf8'), 'operational public fixture\n');
+
+  const checkpoint = createCheckpoint(fx.dir, fx.config, fx.packageJson, key);
+  const selected = selectSnapshot(fx.dir, fx.config);
+  const verified = verifySnapshot(selected.directory, key, fx.config);
+  assert.equal(verified.authenticated, true);
+  assert.equal(verified.metrics.counts.radarTopics, 1);
+  assert.equal(verified.metrics.counts.drafts, 1);
+  assert.equal(verified.metrics.counts.editorialRecords, 1);
+  assert(verified.metrics.ai.chargedTokens >= 1234);
+  assert.equal(selected.manifest.migrations.total, 4);
+
+  const target = path.join(fx.dir, 'operational-restored');
+  const restored = restoreSnapshot({snapshotDir: selected.directory, key, config: fx.config, target});
+  assert.equal(restored.restoredFiles, verified.manifest.content.files);
+  assert.equal(fs.existsSync(path.join(target, 'radar/data/state.json')), true);
+  assert.equal(fs.existsSync(path.join(target, 'newsroom/data/state.json')), true);
+  assert.equal(fs.existsSync(path.join(target, 'editorial/data/records/newsroom-pauta-fixture.json')), true);
+  assert.equal(fs.existsSync(path.join(target, 'newsroom/data/images/pauta-fixture/main.webp')), true);
+  assert.equal(fs.existsSync(path.join(target, 'storage/data/operational.sqlcipher')), false);
+  assert.throws(() => verifyOperationalDatabase(fx.dir, {key: Buffer.alloc(32, 9)}), {code: 'KEY_MISMATCH'});
+});
+
+test('storage: ativação bloqueia fonte alterada após a migração', t => {
+  const fx = prepareOperationalFixture(t);
+  const migrated = migrateOperational(fx.dir, fx.config, fx.packageJson, key);
+  assert.equal(migrated.status, 'pending');
+  const radar = JSON.parse(fs.readFileSync(path.join(fx.dir, 'radar/data/state.json'), 'utf8'));
+  radar.topics[0].status = 'dismissed';
+  writeJson(path.join(fx.dir, 'radar/data/state.json'), radar);
+  assert.throws(
+    () => activateOperational(fx.dir, fx.config, fx.packageJson, key),
+    error => ['MIGRATION_DIVERGENCE', 'SOURCE_CHANGED'].includes(error.code),
+  );
+  assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.json')), false);
+});
+
+test('storage: CLI operacional expõe migrate, compare, activate, status e metrics', t => {
+  const fx = prepareOperationalFixture(t);
+  const cli = path.join(root, 'src/storage/cli.mjs');
+  const env = {...process.env, PULSO_STORAGE_KEY: key.toString('base64url')};
+  const run = (...args) => {
+    const result = spawnSync(process.execPath, [cli, ...args, '--json', '--root', fx.dir], {encoding: 'utf8', timeout: 20000, env});
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const dry = run('migrate', '--dry-run');
+  assert.equal(dry.result.dryRun, true);
+  assert.equal(dry.result.alreadyActive, false);
+  const migrated = run('migrate');
+  assert.equal(migrated.result.status, 'pending');
+  const compared = run('compare');
+  assert.equal(compared.result.equal, true);
+  const activated = run('activate');
+  assert.equal(activated.result.backend, 'sqlite');
+  assert(activated.result.postMigrationCheckpoint.snapshotId);
+  const status = run('status');
+  assert.equal(status.result.backend, 'sqlite');
+  assert.equal(status.result.operational.active, true);
+  const metrics = run('metrics');
+  assert.equal(metrics.result.backend, 'sqlite');
+  assert.equal(metrics.result.counts.radarTopics, 1);
+  assert.equal(metrics.result.counts.editorialRecords, 1);
 });

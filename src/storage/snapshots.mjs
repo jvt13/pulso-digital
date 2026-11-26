@@ -23,6 +23,8 @@ import {
 import {runMigrations} from './migrations.mjs';
 import {collectSourceFiles, importSnapshot} from './importer.mjs';
 import {encryptedHeaderCheck, readSnapshotManifest, withManifestSignature} from './integrity.mjs';
+import {loadStorageKey} from './env.mjs';
+import {collectOperationalSources, loadOperationalConfig, operationalActive} from './operational.mjs';
 
 export function loadProjectConfig(root) {
   const packageJson = readJson(path.join(root, 'package.json'), 65536);
@@ -104,7 +106,10 @@ export function recoverStorageLock(root, config, reason) {
 }
 
 export function checkpointPlan(root, config) {
-  const collection = collectSourceFiles(root, config);
+  const operationalConfig = loadOperationalConfig(root);
+  const collection = operationalActive(root, operationalConfig)
+    ? collectOperationalSources(root, operationalConfig, loadStorageKey(root).key)
+    : collectSourceFiles(root, config);
   return {
     dryRun: true,
     format: config.format,
@@ -121,11 +126,14 @@ export function checkpointPlan(root, config) {
   };
 }
 
-export function createCheckpoint(root, config, packageJson, key, {now = new Date().toISOString()} = {}) {
-  return withStorageLock(root, config, () => {
+export function createCheckpoint(root, config, packageJson, key, {now = new Date().toISOString(), lock = true} = {}) {
+  const execute = () => {
+    const operationalConfig = loadOperationalConfig(root);
     const createdAt = now;
     const snapshotId = newSnapshotId(createdAt);
-    const collection = collectSourceFiles(root, config);
+    const collection = operationalActive(root, operationalConfig)
+      ? collectOperationalSources(root, operationalConfig, key)
+      : collectSourceFiles(root, config);
     const snapshots = snapshotRoot(root, config);
     ensureDirectory(snapshots);
     const temporary = path.join(snapshots, `.tmp-${crypto.randomUUID()}`);
@@ -216,7 +224,8 @@ export function createCheckpoint(root, config, packageJson, key, {now = new Date
       }
       throw error;
     }
-  });
+  };
+  return lock ? withStorageLock(root, config, execute) : execute();
 }
 
 export function listSnapshots(root, config) {

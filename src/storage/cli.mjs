@@ -13,12 +13,15 @@ import {
   selectSnapshot,
 } from './snapshots.mjs';
 import {restoreSnapshot} from './exporter.mjs';
+import {migrationPlan, migrateOperational, compareOperational, migrationStatus, activateOperational} from './operational-migration.mjs';
+import {loadOperationalConfig, operationalActive, operationalMetrics, verifyOperationalDatabase} from './operational.mjs';
 
 const help = `Pulso Digital - armazenamento criptografado
 Uso: npm run storage -- COMANDO [opções]
 
 help | status | checkpoint [--dry-run] | verify | inspect
 metrics [--json] | restore --dry-run | restore --target DIRETORIO
+migrate [--dry-run] | migration-status | compare | activate | backup
 keygen [--env-file ARQUIVO] | recover --reason "Justificativa"
 
 Opções globais: --root DIRETORIO, --json, --snapshot ID
@@ -34,6 +37,11 @@ const commands = {
   inspect: {values: ['snapshot'], flags: []},
   metrics: {values: ['snapshot'], flags: []},
   restore: {values: ['target', 'snapshot'], flags: ['dry-run']},
+  migrate: {values: [], flags: ['dry-run']},
+  'migration-status': {values: [], flags: []},
+  compare: {values: [], flags: []},
+  activate: {values: [], flags: []},
+  backup: {values: [], flags: ['dry-run']},
   keygen: {values: ['env-file'], flags: []},
   recover: {values: ['reason'], flags: []},
 };
@@ -97,9 +105,12 @@ export async function main(argv = process.argv.slice(2)) {
         const loaded = loadStorageKey(root, {required: false});
         const snapshots = listSnapshots(root, config);
         const sourceLocks = config.sources.sourceLockPaths.filter((item) => fs.existsSync(path.join(root, item)));
+        const operational = migrationStatus(root, config, loaded?.key || null);
         result = {
           command: 'status',
           version: packageJson.version,
+          backend: operational.active ? 'sqlite' : 'json',
+          operational,
           format: config.format,
           formatVersion: config.formatVersion,
           cipher: config.database.cipher,
@@ -117,19 +128,24 @@ export async function main(argv = process.argv.slice(2)) {
         };
         break;
       }
-      case 'checkpoint': {
+      case 'checkpoint':
+      case 'backup': {
         if (opts['dry-run']) {
-          result = {command: 'checkpoint', ...checkpointPlan(root, config)};
+          result = {command: parsed.command, ...checkpointPlan(root, config)};
         } else {
           const loaded = loadStorageKey(root);
           check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
-          result = {command: 'checkpoint', ...createCheckpoint(root, config, packageJson, loaded.key)};
+          result = {command: parsed.command, ...createCheckpoint(root, config, packageJson, loaded.key)};
         }
         break;
       }
       case 'verify': {
         const loaded = loadStorageKey(root);
         check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+        if (!opts.snapshot && operationalActive(root, loadOperationalConfig(root))) {
+          result = {command: 'verify', backend: 'sqlite', ...verifyOperationalDatabase(root, {key: loaded.key, config: loadOperationalConfig(root)})};
+          break;
+        }
         const selected = selectSnapshot(root, config, opts.snapshot || null);
         const verified = verifySnapshot(selected.directory, loaded.key, config);
         result = {
@@ -144,6 +160,10 @@ export async function main(argv = process.argv.slice(2)) {
       }
       case 'inspect': {
         const loaded = loadStorageKey(root, {required: false});
+        if (!opts.snapshot && loaded && operationalActive(root, loadOperationalConfig(root))) {
+          result = {command: 'inspect', backend: 'sqlite', ...verifyOperationalDatabase(root, {key: loaded.key, config: loadOperationalConfig(root)})};
+          break;
+        }
         const selected = selectSnapshot(root, config, opts.snapshot || null);
         if (loaded) {
           const verified = verifySnapshot(selected.directory, loaded.key, config);
@@ -169,6 +189,10 @@ export async function main(argv = process.argv.slice(2)) {
       case 'metrics': {
         const loaded = loadStorageKey(root);
         check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+        if (operationalActive(root, loadOperationalConfig(root))) {
+          result = {command: 'metrics', ...operationalMetrics(root, {key: loaded.key, config: loadOperationalConfig(root)})};
+          break;
+        }
         const selected = selectSnapshot(root, config, opts.snapshot || null);
         const verified = verifySnapshot(selected.directory, loaded.key, config);
         result = {command: 'metrics', snapshotId: verified.snapshotId, metrics: verified.metrics};
@@ -196,6 +220,35 @@ export async function main(argv = process.argv.slice(2)) {
         result = {command: 'recover', ...recoverStorageLock(root, config, opts.reason)};
         break;
       }
+      case 'migrate': {
+        if (opts['dry-run']) {
+          result = {command: 'migrate', ...migrationPlan(root, config)};
+        } else {
+          const loaded = loadStorageKey(root);
+          check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+          result = {command: 'migrate', ...migrateOperational(root, config, packageJson, loaded.key)};
+        }
+        break;
+      }
+      case 'migration-status': {
+        const loaded = loadStorageKey(root, {required: false});
+        result = {command: 'migration-status', ...migrationStatus(root, config, loaded?.key || null)};
+        break;
+      }
+      case 'compare': {
+        const loaded = loadStorageKey(root);
+        check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+        result = {command: 'compare', ...compareOperational(root, config, loaded.key)};
+        break;
+      }
+      case 'activate': {
+        const loaded = loadStorageKey(root);
+        check(loaded, 'STORAGE_KEY_MISSING', 'Chave de armazenamento ausente.');
+        const activation = activateOperational(root, config, packageJson, loaded.key);
+        const postMigrationCheckpoint = createCheckpoint(root, config, packageJson, loaded.key);
+        result = {command: 'activate', ...activation, postMigrationCheckpoint};
+        break;
+      }
       default:
         throw new StorageError('CLI', 'Comando não implementado.');
     }
@@ -207,7 +260,7 @@ export async function main(argv = process.argv.slice(2)) {
     const payload = {ok: false, code, message: error?.message || 'Falha na operação de armazenamento.'};
     console.error(opts.json ? JSON.stringify(payload) : JSON.stringify(payload, null, 2));
     if (/^(STORAGE_KEY_MISSING|STORAGE_KEY_INVALID|KEY_MISMATCH)$/.test(code)) return 3;
-    if (/^(LOCK_BUSY|SOURCE_BUSY|IO|EACCES|EPERM)$/.test(code)) return 4;
+    if (/^(LOCK_BUSY|SOURCE_BUSY|MIGRATION_DIVERGENCE|SOURCE_CHANGED|MIGRATION_PENDING|ALREADY_ACTIVE|DATABASE_EXISTS|TAMPERED|INTEGRITY|OPERATIONAL_CONFLICT|IO|EACCES|EPERM)$/.test(code)) return 4;
     return 2;
   }
 }

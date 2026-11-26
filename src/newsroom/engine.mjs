@@ -13,6 +13,7 @@ import {usageSummary} from './budget.mjs';
 import {describeEvidence} from './evidence-quality.mjs';
 import {evaluateEditorialQuality} from './quality.mjs';
 import {extractHtml} from './extractor.mjs';
+import {syncOperationalAssets} from '../storage/operational.mjs';
 
 export class NewsroomEngine {
   constructor(repo,dependencies={}){this.repo=repo;this.dependencies=dependencies;}
@@ -51,16 +52,15 @@ export class NewsroomEngine {
     catch(e){record.status='failed';record.history.push({at:this.repo.now(),action:'write-failed',code:e.code||'AI_ERROR',category:e.category||null,recommendedAction:e.recommendedAction||null});this.repo.save(state);throw e;}
   });}
   async verify(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.draft&&['draft-generated','review-required','image-pending','ready-to-import'].includes(record.status),'STATE','Rascunho não disponível.');const result=verifyDraft(record.draft,record.dossier);record.verification=result;record.status=result.valid?'image-pending':'review-required';record.history.push({at:this.repo.now(),action:'verify',valid:result.valid,errors:result.errors.map(e=>e.code)});this.repo.save(state);return {id,status:record.status,verification:result};});}
-  async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=inspectImage(this.repo.root,id);record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status});this.repo.save(state);return {id,status:record.status,image:record.image};});}
+  async prepareImage(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid,'STATE','Verifique o rascunho antes da imagem.');const prepared=inspectImage(this.repo.root,id);record.image={status:prepared.status,reason:prepared.reason||null,manifest:prepared.ready?prepared.manifest:null};record.status=prepared.status;record.history.push({at:this.repo.now(),action:'prepare-image',status:prepared.status});this.repo.save(state);syncOperationalAssets(this.repo.root,`newsroom/data/images/${id}`);return {id,status:record.status,image:record.image};});}
   async importDraft(id){return this.repo.withLock(async()=>{const state=this.repo.read(),record=state.topics[id];check(record?.verification?.valid&&!record.synthetic,'STATE','Somente rascunho real verificado pode ser importado.');check(['image-pending','ready-to-import','imported'].includes(record.status),'STATE','Execute prepare-image antes da importação.');
     const editorialId=`newsroom-${id}`,editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
-    const priorPath=editorialRepo.recordPath(editorialId);
-    if(fs.existsSync(priorPath)){const existing=editorialRepo.get(editorialId),topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),expected=editorialInput(topic,record.draft,record.dossier,prepared.ready?prepared.image:null);check(hash(existing.input)===hash(expected),'IMPORT_CONFLICT','Rascunho editorial existente difere; revisão controlada necessária.');record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(expected);this.repo.save(state);return {id,status:'imported',editorialId,alreadyImported:true};}
+    if(editorialRepo.exists(editorialId)){const existing=editorialRepo.get(editorialId),topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),expected=editorialInput(topic,record.draft,record.dossier,prepared.ready?prepared.image:null);check(hash(existing.input)===hash(expected),'IMPORT_CONFLICT','Rascunho editorial existente difere; revisão controlada necessária.');record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(expected);this.repo.save(state);return {id,status:'imported',editorialId,alreadyImported:true};}
     const prepared=inspectImage(this.repo.root,id),image=prepared.ready?stageImage(this.repo.root,id,prepared):null;
     const topic=this.radarTopic(id),input=editorialInput(topic,record.draft,record.dossier,image),relative=`editorial/data/incoming/${editorialId}.json`,target=file(this.repo.root,relative),bytes=jsonBytes(input);
     if(fs.existsSync(target))check(fs.readFileSync(target).equals(bytes),'IMPORT_CONFLICT','Incoming existente difere; não sobrescrever.');else atomicWrite(target,bytes);
     const imported=editorialEngine.import(relative);check(imported.state==='draft','IMPORT','Motor editorial não retornou estado draft.');
-    record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(input);record.imageStatus=prepared.status;record.history.push({at:this.repo.now(),action:'import',editorialId,imageStatus:prepared.status});this.repo.save(state);
+    record.status='imported';record.editorialId=editorialId;record.editorialInputHash=hash(input);record.imageStatus=prepared.status;record.history.push({at:this.repo.now(),action:'import',editorialId,imageStatus:prepared.status});this.repo.save(state);syncOperationalAssets(this.repo.root,`editorial/data/incoming/newsroom-${id}`);
     return {id,status:record.status,editorialId,alreadyImported:false,imageStatus:prepared.status};
   });}
   quality(id){const record=this.show(id);check(record.draft&&record.verification,'STATE','Rascunho verificado necessário para qualidade.');return evaluateEditorialQuality(record.draft,record.dossier,record.verification);}
@@ -114,7 +114,7 @@ export class NewsroomEngine {
     const topic=this.radarTopic(id),prepared=inspectImage(this.repo.root,id),image=prepared.ready?stageImage(this.repo.root,id,prepared):null;
     const input=editorialInput(topic,draft,record.dossier,image),editorialId=record.editorialId;
     const editorialRepo=new EditorialRepository(this.repo.root),editorialEngine=new EditorialEngine(editorialRepo);
-    check(fs.existsSync(editorialRepo.recordPath(editorialId)),'NOT_FOUND','Registro editorial não encontrado.');
+    check(editorialRepo.exists(editorialId),'NOT_FOUND','Registro editorial não encontrado.');
     const relative=`editorial/data/incoming/${editorialId}-revision-${Date.now()}.json`,target=file(this.repo.root,relative),bytes=jsonBytes(input);
     atomicWrite(target,bytes);
     const revised=editorialEngine.revise(editorialId,relative,reason);

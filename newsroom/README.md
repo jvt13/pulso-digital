@@ -60,6 +60,10 @@ O `Editorial Quality Score` determinístico usa pesos 30/25/15/15/15 para precis
 
 ## Revisão semântica independente
 
+Após `storage activate`, os repositórios de radar, newsroom e editorial leem e escrevem no
+`storage/data/operational.sqlcipher`; os JSON privados permanecem intactos como legado de
+recuperação. Consumo, revisões, históricos e assets são migrados junto do estado do newsroom.
+
 `review-v2` envia ao Gemini um payload compacto: título, resumo, seções, claims com aliases de evidência e cada trecho de evidência uma única vez. O resultado continua no contrato `review-v1`, vinculado ao hash integral e à configuração do revisor. Aliases e IDs inexistentes, respostas truncadas e resultados incompatíveis são rejeitados. Severidade `critical`/`major`, claims contraditos e sinais de prompt injection elevam o resultado efetivo; falhas determinísticas bloqueantes nunca são sobrescritas. `thinkingLevel: minimal` é explícito e limitado à faixa do modelo.
 
 O orçamento de revisão é separado por provedor/operação: nesta homologação, até 2 chamadas por tarefa, 15.000 tokens, 4.000 de entrada estimada, 3.000 de saída e 7.000 tokens por minuto. A pré-checagem da redação reserva margem para a revisão posterior. A chamada real usou `gemini-3.5-flash-lite`; a configuração inicial com 3.8 Flash excedeu timeout e foi descartada.

@@ -18,6 +18,12 @@
     "snapshots": "storage/data/snapshots",
     "lock": "storage/data/lock"
   },
+  "operational": {
+    "filename": "operational.sqlcipher",
+    "markerFilename": "operational.json",
+    "migrationReceipt": "operational-migration.json",
+    "schemaVersion": 4
+  },
   "sources": {
     "directories": [
       "radar/data",

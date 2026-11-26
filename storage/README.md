@@ -1,95 +1,159 @@
-# Armazenamento criptografado - contrato 1.0
+# Armazenamento operacional criptografado — contrato 1.4.6
 
-A camada `src/storage/` produz checkpoints SQLCipher dos dados operacionais privados. Os repositórios JSON continuam sendo a fonte operacional de verdade. O banco não substitui `radar/data/`, `newsroom/data/` ou `editorial/data/`, não aprova matérias, não publica, não acessa IA e não altera `content/` ou `public/`.
+A camada `src/storage/` mantém dois artefatos distintos:
+
+- `storage/data/operational.sqlcipher`: banco SQLCipher operacional, fonte de verdade após
+  ativação explícita;
+- `storage/data/snapshots/`: checkpoints imutáveis para backup, verificação e restauração
+  isolada.
+
+Os arquivos JSON de `radar/data/`, `newsroom/data/` e `editorial/data/` são preservados como
+material legado de recuperação. Depois da ativação, eles não são mais lidos como fonte
+operacional nem escritos pelos repositórios. `content/` e `public/` continuam separados: o
+visitante do portal nunca acessa o banco.
 
 ## Tecnologia
 
 - SQLCipher em modo compatível `legacy=4`, via `better-sqlite3-multiple-ciphers@13.2.0`.
-- Licença MIT, Node.js ≥22, binários pré-compilados para Windows/Linux; o projeto exige Node.js ≥24.
-- SQLite 3.54.1 e SQLite3 Multiple Ciphers 2.7.1.
-- `journal_mode=DELETE` e `temp_store=MEMORY`, sem WAL ou arquivos temporários persistentes.
-- Chave de 32 bytes em `PULSO_STORAGE_KEY`, nunca derivada de Groq ou Gemini.
-- Manifesto JSON autenticado com HMAC-SHA256 derivado por HKDF; o banco é autenticado pelo próprio SQLCipher e pelo hash SHA-256 no manifesto.
+- Licença MIT, Node.js ≥24, binários Windows/Linux.
+- `journal_mode=DELETE`, `synchronous=FULL`, `temp_store=MEMORY`, `secure_delete=ON`,
+  `foreign_keys=ON` e permissões de arquivo restritas.
+- Chave de 32 bytes em `PULSO_STORAGE_KEY`, nunca derivada de Groq, Gemini ou de dados do
+  projeto. A chave não é exibida em logs, relatórios, banco ou Git.
+- Marcador assinado em `storage/data/operational.json`, com HMAC derivado por HKDF, versão do
+  schema, fingerprint da fonte, hash do banco, versão da aplicação e commit.
+- Manifestos de snapshot autenticados com HMAC-SHA256; o banco é autenticado pelo SQLCipher
+  e pelo SHA-256 do manifesto.
 
-A alternativa de SQLite comum com AES-256-GCM sobre o arquivo foi avaliada. Ela protegeria o snapshot persistido, mas não a página em uso durante a consulta e exigiria uma segunda camada de autenticação. Como o SQLCipher foi instalado e homologado sem dependência paga em Windows, foi escolhido. O `node:sqlite` nativo continua sem cifra transparente e não foi usado para os dados persistidos.
+SQLite comum não foi considerado criptografado por estar em diretório privado. A alternativa
+de AES-256-GCM sobre snapshots foi avaliada, mas não oferece proteção transparente durante a
+consulta; o SQLCipher já homologado foi reutilizado.
 
-## Modelo
+## Schema operacional
 
-As migrations em `migrations/` criam:
+A migration `004_operational_store.sql` acrescenta:
 
-- execuções, importações, snapshots e leases;
-- arquivos de origem com bytes, SHA-256 e categoria;
-- pautas, sinais, histórico e execuções do radar;
-- cache de pesquisa, dossiês, fontes e evidências;
-- rascunhos, seções, claims e histórico do newsroom;
-- chamadas de IA, reservas, consumo, erros e limites;
-- revisões semânticas, achados por severidade, avaliações de claims e obsolescência;
-- imagens, assets privados e manifestos;
-- registros e eventos editoriais;
-- publicações, imagens públicas, configurações e erros operacionais.
+- `operational_state`: JSON canônico por namespace (`radar` e `newsroom`);
+- `operational_records`: registro editorial canônico individual;
+- `operational_assets`: bytes, SHA-256, tipo e tópico de assets privados;
+- `operational_events`: auditoria de importação, ativação e sincronização;
+- views `v_operational_backend`, `v_operational_assets` e `v_operational_events`.
 
-Os contratos completos permanecem em colunas JSON canônicas. As projeções normalizadas permitem métricas e futuras consultas de painel sem uma segunda fonte de verdade.
+As tabelas normalizadas e views anteriores continuam sendo projeções derivadas do registro
+canônico por `src/storage/operational-projector.mjs`. Consultas parametrizadas, transações
+`BEGIN IMMEDIATE` e hashes SHA-256 protegem leituras e escritas. Não existe uma segunda
+representação editável concorrente: o JSON canônico dentro do SQLite é o registro principal e
+as projeções são reconstruídas na mesma transação.
 
 ## Comandos
 
 ```bash
 npm run storage -- help
 npm run storage -- status
+npm run storage -- migrate --dry-run
+npm run storage -- migrate
+npm run storage -- migration-status
+npm run storage -- compare
+npm run storage -- activate
+npm run storage -- verify
 npm run storage -- checkpoint --dry-run
 npm run storage -- checkpoint
-npm run storage -- verify
-npm run storage -- inspect
+npm run storage -- backup
 npm run storage -- metrics --json
+npm run storage -- inspect
 npm run storage -- restore --dry-run
 npm run storage -- restore --target DIRETORIO
 npm run storage -- keygen
 npm run storage -- recover --reason "Justificativa"
 ```
 
-- `checkpoint --dry-run` não cria diretório, banco ou lock.
-- `restore --dry-run` autentica e lista o plano sem escrever.
-- `restore --target` exige destino inexistente e monta o resultado em diretório temporário antes do rename.
-- `keygen` grava a chave em `.env` sem imprimir o valor.
-- Nenhum comando executa IA, aprova, publica ou faz deploy.
+- `migrate --dry-run` apenas inventaria e não cria banco, snapshot ou lock.
+- `migrate` cria um checkpoint pré-migração, um banco `operational.pending.*.sqlcipher` e um
+  recibo assinado. A fonte de verdade continua JSON.
+- `compare` confronta hashes, contagens, estados, históricos, claims, evidências, revisões,
+  reservas, assets e referências. Divergência bloqueia a ativação.
+- `activate` revalida a fonte, promove o banco pendente para `operational.sqlcipher`, grava o
+  marcador assinado e executa o checkpoint pós-migração.
+- `backup` é alias de `checkpoint`; com o backend ativo, coleta o estado consistente do
+  SQLite, não os JSON legados.
+- `verify`/`inspect`/`metrics` usam o banco operacional quando ativo e o snapshot mais recente
+  quando não há ativação.
+- `restore --target` restaura somente em diretório isolado, com destino inexistente. Uma
+  reversão do backend exige exportação consistente, comparação e nova ativação; não há
+  rollback destrutivo automático.
 
-Códigos de saída: 0 sucesso; 2 contrato/formato; 3 chave ausente, inválida ou incorreta; 4 lock, I/O ou acesso.
+Códigos: 0 sucesso; 2 contrato/formato; 3 chave ausente/inválida/incorreta; 4 lock, I/O,
+conflito, divergência ou adulteração.
 
-## Chave e recuperação
+## Migração e ativação
 
-A chave é lida primeiro do ambiente e depois de `.env`, que é ignorado pelo Git. O valor deve representar 32 bytes em base64url ou 64 caracteres hexadecimais. O manifesto guarda apenas um fingerprint SHA-256 curto e um HMAC.
+O fluxo é deliberadamente conservador:
 
-- Faça backup da chave em local separado e seguro. Sem a chave original e sem backup válido, o snapshot é irrecuperável.
-- Não coloque a chave em `reports/`, `public/`, Git, chat, logs ou GitHub Actions público.
-- Para rotacionar, crie um novo checkpoint com a nova chave, valide a restauração e só então retire a chave anterior. O snapshot antigo continua exigindo a chave antiga.
-- O comando `recover` só remove lock sem proprietário verificável ou com processo comprovadamente inativo; lock de processo vivo é preservado.
+1. inventário dos JSON, contagens, hashes, históricos, claims, evidências, revisões, reservas e
+   assets;
+2. checkpoint pré-migração autenticado;
+3. importação para banco pendente, com projeções normalizadas;
+4. comparação canônica e funcional;
+5. ativação explícita, com bloqueio de escritas concorrentes e verificação de que a fonte não
+   mudou;
+6. checkpoint pós-migração e validação não destrutiva.
 
-## Consistência e integridade
+O marcador só é criado após o banco pendente ser promovido. Se a ativação falhar antes do
+marcador, o backend JSON permanece efetivo. Se houver banco sem marcador, o sistema falha de
+forma segura e não escolhe uma fonte de verdade por conta própria.
 
-Antes da coleta, o storage verifica locks ativos de radar, newsroom e editorial. Cada arquivo é lido com conferência de tamanho, tipo, mtime e SHA-256. O snapshot é construído em diretório temporário, com SQLCipher desde o primeiro byte, migrations transacionais, HMAC do manifesto e rename final.
+## Concorrência, orçamento e recuperação
 
-A verificação abre o banco somente em leitura, executa `integrity_check`, `foreign_key_check`, confere todos os blobs e reconstitui os indicadores. Qualquer alteração no banco, manifesto, tamanho, hash ou métrica é rejeitada.
+Os locks de sistema de arquivos de radar, newsroom e editorial continuam protegendo operações
+longas sem manter transação SQL aberta durante chamadas HTTP. O orçamento é reservado e
+persistido antes da chamada externa; tentativas incompletas conservam a reserva. O banco
+operacional é atualizado em transação curta e compara o hash lido antes da escrita
+(`OPERATIONAL_CONFLICT`) para impedir perda silenciosa.
 
-## Estratégia de nuvem
+Uma chamada externa já enviada não é desfeita por rollback SQL. Resultados desconhecidos
+permanecem conservadoramente contabilizados e exigem diagnóstico antes de nova tentativa.
 
-A recomendação para a próxima etapa é separar:
+## Assets e riscos residuais
 
-- `jvt13/pulso-digital`: código público e site.
-- `jvt13/pulso-digital-ops`: repositório privado para automação e snapshots.
+Assets privados de `newsroom/data/images/` e `editorial/data/incoming/` são copiados para
+`operational_assets` com bytes e SHA-256. A preparação de imagem ainda materializa arquivos
+privados locais para conversão e staging; esses arquivos são cache operacional e não a fonte
+de verdade. Cópias legadas em texto claro permanecem no disco e devem ser protegidas por
+permissões do sistema e removidas futuramente após homologação específica.
 
-O repositório privado deve receber `PULSO_STORAGE_KEY` em GitHub Secrets e usar permissões mínimas: `contents: write` somente nele, `actions: read` para acompanhamento e OIDC ou GitHub App/deploy key de escopo restrito para o repositório público. Não armazenar a chave no repositório público nem em logs.
+O banco operacional não deve ser confundido com um snapshot imutável: ele é alterado durante
+a operação. A integridade considera o hash do arquivo no marcador, `integrity_check`,
+`foreign_key_check`, `cipher_integrity_check` e os hashes dos registros canônicos.
 
-Snapshots não devem ser guardados em cache do Actions como fonte primária. Para retenção, prefira release assets ou Git LFS no repositório privado, mantendo as últimas N versões e um manifesto de checksums; artefatos temporários do Actions não têm retenção permanente. Versionar cada banco no Git aumenta o histórico, então checkpoints frequentes devem ficar fora do histórico comum ou em LFS.
+## Retenção e VPS
 
-A execução concorrente deve usar `concurrency: group: pulso-ops-state, cancel-in-progress: false`, o lock local da CLI e, no futuro, uma lease no banco com `owner`, `host`, `token` e `expires_at`. O processo só assume a lease após conferir o vencimento e o proprietário. Checkpoint e publicação devem ser serializados. A retenção inicial sugerida é de 10 snapshots, com cópia externa periódica.
+A retenção sugerida é de dez snapshots, sem remoção automática nesta versão. Snapshots devem
+ser copiados periodicamente para destino externo à VPS, com a chave preservada separadamente.
+Não use cache do GitHub Actions como armazenamento primário; artefatos temporários não têm
+retenção permanente.
 
-As cotas gratuitas do GitHub para Actions privados, LFS e armazenamento de releases precisam ser reconfirmadas antes da implantação; este projeto não criou repositório remoto, não configurou segredo, agendamento ou faturamento nesta tarefa.
+Implantação Linux recomendada:
+
+- usuário de serviço dedicado, sem privilégios administrativos;
+- aplicação e `public/` em diretórios de leitura controlada;
+- `storage/data/` e `radar|newsroom|editorial/data/` em volume persistente com modo `0700`;
+- backups em volume separado, com permissões restritas;
+- `PULSO_STORAGE_KEY` e credenciais apenas em ambiente protegido ou arquivo `0600` fora do
+  repositório;
+- reinicialização por unidade systemd futura, sem agendamento ou exposição de portas nesta
+  tarefa;
+- validação pós-atualização: `storage status`, `storage verify`, `storage compare` e testes.
+
+## Indicadores para o painel
+
+As projeções reutilizam `v_radar_status`, `v_editorial_pipeline`, `v_ai_usage`,
+`v_review_summary`, `v_review_severity` e `v_image_inventory`, além das views operacionais.
+Elas expõem pautas, dossiês, rascunhos, revisões, achados críticos, imagens pendentes, consumo
+diário/mensal, erros, histórico e estado do backend sem criar API ou painel nesta tarefa.
 
 ## Limitações
 
-- SQLCipher protege o banco em repouso; a chave precisa estar disponível no processo autorizado para consultas.
-- O storage não substitui backup externo da chave e do snapshot.
-- A restauração para dentro de um projeto ativo é bloqueada por padrão; ela deve ocorrer em diretório isolado e passar por revisão.
-- O banco é um checkpoint consistente dos JSON, não uma replicação contínua.
-- Não há painel, API REST, agendamento ou publicação autônoma nesta versão.
-
-As revisões Gemini são projetadas na tabela `editorial_reviews`, com views `v_review_summary` e `v_review_severity`. A fonte operacional continua sendo o JSON privado do newsroom.
+- A chave precisa estar disponível para o processo autorizado; SQLCipher protege o repouso.
+- Cópias legadas e arquivos materializados continuam em claro no disco até remoção futura.
+- O banco é atualizado em transações curtas; não há replicação contínua nem servidor remoto.
+- Não há painel, API REST, agendamento, publicação autônoma ou configuração de VPS nesta versão.
