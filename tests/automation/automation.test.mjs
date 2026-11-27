@@ -473,7 +473,7 @@ test('automation: orçamento insuficiente deixa job deferred sem chamada', async
   const repo = new NewsroomRepository(fx.dir);
   await repo.withLock(async () => {
     const state = repo.read();
-    state.usage.push({id: 'budget-fixture', topicId: 'pauta-externa', provider: 'groq', model: 'openai/gpt-oss-120b', at: new Date().toISOString(), status: 'complete', reservedTokens: 50000, chargedTokens: 50000, actualTokens: 50000});
+    state.usage.push({id: 'budget-fixture', topicId: 'pauta-externa', provider: 'groq', model: 'openai/gpt-oss-120b', at, status: 'complete', reservedTokens: 50000, chargedTokens: 50000, actualTokens: 50000});
     repo.save(state);
   });
   const orchestrator = makeOrchestrator(fx);

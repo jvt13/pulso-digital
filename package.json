@@ -12,7 +12,7 @@
     "verify:production": "node tools/verify-site.mjs dist/production production",
     "start": "node src/server.mjs",
     "editorial": "node src/editorial/cli.mjs",
-    "test": "node --test --test-reporter=tap src/test.mjs tests/site/build.test.mjs tests/editorial/engine.test.mjs tests/editorial/publication-policy.test.mjs tests/radar/radar.test.mjs tests/radar/refinement.test.mjs tests/newsroom/newsroom.test.mjs tests/newsroom/review-context.test.mjs tests/reports/maintenance.test.mjs tests/storage/storage.test.mjs tests/automation/automation.test.mjs",
+    "test": "node --test --test-reporter=tap src/test.mjs tests/site/build.test.mjs tests/deploy/scripts.test.mjs tests/editorial/engine.test.mjs tests/editorial/publication-policy.test.mjs tests/radar/radar.test.mjs tests/radar/refinement.test.mjs tests/newsroom/newsroom.test.mjs tests/newsroom/review-context.test.mjs tests/reports/maintenance.test.mjs tests/storage/storage.test.mjs tests/automation/automation.test.mjs",
     "radar": "node src/radar/cli.mjs",
     "newsroom": "node src/newsroom/cli.mjs",
     "storage": "node src/storage/cli.mjs",

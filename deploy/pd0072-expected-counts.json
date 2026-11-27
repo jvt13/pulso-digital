@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 5,
+  "counts": {
+    "radarTopics": 247,
+    "radarSignals": 251,
+    "radarHistory": 1219,
+    "dossiers": 7,
+    "evidence": 81,
+    "drafts": 5,
+    "draftClaims": 46,
+    "reviews": 8,
+    "editorialRecords": 5,
+    "publications": 8,
+    "aiCalls": 21
+  },
+  "ai": {
+    "incomplete": 8,
+    "chargedTokens": 80423
+  }
+}

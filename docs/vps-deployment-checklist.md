@@ -1,4 +1,8 @@
-# Checklist de implantação na VPS
+# Checklist histórico de implantação na VPS
+
+> Para a PD-007.2, utilize o procedimento vigente em
+> [manual-vps-deployment.md](manual-vps-deployment.md). Este checklist permanece como
+> referência histórica da primeira preparação.
 
 Este documento prepara a implantação; não configura nem acessa a VPS.
 

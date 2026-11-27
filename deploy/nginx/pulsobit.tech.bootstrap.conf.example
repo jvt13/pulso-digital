@@ -1,0 +1,20 @@
+# Configuração temporária e exclusiva do PulsoBit antes do certificado TLS.
+# Não serve o portal nem cria um servidor default.
+
+limit_req_zone $binary_remote_addr zone=pulsobit_static:10m rate=20r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name pulsobit.tech www.pulsobit.tech;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+    }
+
+    location / {
+        add_header Retry-After 300 always;
+        return 503;
+    }
+}

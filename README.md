@@ -71,7 +71,7 @@ domínio de produção é `https://pulsobit.tech`.
 
 - Homologação: GitHub Pages em `/pulso-digital/`, publicidade e indexação desativadas.
 - Produção: domínio principal `https://pulsobit.tech/`, servido futuramente por Nginx; não configure domínio próprio no GitHub Pages.
-- Runbook seguro: [docs/vps-deployment.md](docs/vps-deployment.md).
+- Runbook manual vigente: [docs/manual-vps-deployment.md](docs/manual-vps-deployment.md).
 - Persistência externa, migração, atualização e rollback: [docs/runtime-storage.md](docs/runtime-storage.md).
 - Exemplos de systemd e Nginx: `deploy/systemd/` e `deploy/nginx/`.
 
