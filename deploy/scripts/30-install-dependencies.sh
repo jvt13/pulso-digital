@@ -17,7 +17,7 @@ root=$(repo_root)
 log "instalando dependências fixadas no release ${root}"
 (
   cd -- "${root}"
-  run_npm ci --no-audit --no-fund
+  run_npm ci --ignore-scripts --no-audit --no-fund
 )
 
 (

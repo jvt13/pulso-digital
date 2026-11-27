@@ -116,7 +116,7 @@ if [[ ${dependency_action} == "reuse-current-node_modules" && ! -d "${target}/no
 else
   (
     cd -- "${target}"
-    run_npm ci
+    run_npm ci --ignore-scripts
   )
 fi
 

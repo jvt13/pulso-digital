@@ -89,7 +89,7 @@ if [[ -d "${current}/node_modules" && ${current_lock} == "${target_lock}" && ! -
 else
   (
     cd -- "${target}"
-    run_npm ci
+    run_npm ci --ignore-scripts
   )
 fi
 (

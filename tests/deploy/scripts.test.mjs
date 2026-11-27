@@ -217,3 +217,12 @@ test('run_npm prioriza o Node independente e não usa npm_config_jobs', () => {
   assert.match(dependencies, /new Database\(':memory:'\)/);
   assert.match(dependencies, /sqlite-native-memory-ok/);
 });
+
+test('instalação usa prebuild SQLite sem executar scripts de dependências', () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(packageJson.allowScripts, undefined);
+  const dependencies = fs.readFileSync(path.join(scriptsDir, '30-install-dependencies.sh'), 'utf8');
+  assert.match(dependencies, /run_npm ci --ignore-scripts/);
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
+  assert.match(workflow, /npm ci --ignore-scripts/);
+});
