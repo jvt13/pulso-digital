@@ -11,22 +11,18 @@ require_command certbot
 require_command openssl
 
 email=${1:-}
-credentials=${2:-/etc/letsencrypt/cloudflare-pulsobit.ini}
-[[ ${email} == *@*.* ]] || die "uso: $0 EMAIL [ARQUIVO_CREDENCIAL_CLOUDFLARE]"
-[[ -f ${credentials} ]] || die "arquivo de credencial DNS-01 ausente: ${credentials}."
-[[ $(stat -c '%a' "${credentials}") =~ ^(400|600)$ ]] ||
-  die "credencial Cloudflare deve ter permissão 0400 ou 0600."
-certbot plugins --text 2>/dev/null | grep -q 'dns-cloudflare' ||
-  die "plugin Certbot dns-cloudflare não instalado; instale-o em etapa administrativa separada."
+webroot=${2:-/var/www/letsencrypt}
+[[ ${email} == *@*.* ]] || die "uso: $0 EMAIL [WEBROOT]"
+[[ -d ${webroot} && ! -L ${webroot} ]] || die "webroot ACME ausente ou inseguro: ${webroot}."
 
 certificate="/etc/letsencrypt/live/pulsobit.tech/fullchain.pem"
 if [[ -f ${certificate} ]] && openssl x509 -checkend 604800 -noout -in "${certificate}" >/dev/null; then
   log "certificado existente ainda é válido por mais de sete dias"
 else
   certbot certonly \
+    --webroot \
+    --webroot-path "${webroot}" \
     --cert-name pulsobit.tech \
-    --dns-cloudflare \
-    --dns-cloudflare-credentials "${credentials}" \
     --email "${email}" \
     --agree-tos \
     --non-interactive \
@@ -35,4 +31,4 @@ else
 fi
 
 openssl x509 -noout -subject -issuer -dates -ext subjectAltName -in "${certificate}"
-log "certificado obtido; modo SSL/TLS do Cloudflare não foi alterado"
+log "certificado validado por HTTP-01; proxy e modo SSL/TLS do Cloudflare não foram alterados"

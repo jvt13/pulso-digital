@@ -3,6 +3,8 @@ Description=PulsoBit editorial orchestrator
 Documentation=file:/opt/pulso-digital/current/docs/vps-deployment.md
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 Type=simple
@@ -19,8 +21,6 @@ Restart=on-failure
 RestartSec=30
 TimeoutStopSec=45
 KillSignal=SIGTERM
-StartLimitIntervalSec=300
-StartLimitBurst=3
 CPUWeight=50
 MemoryMax=512M
 NoNewPrivileges=true
@@ -38,6 +38,7 @@ LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 ReadWritePaths=/var/lib/pulso-digital
 ReadWritePaths=/var/www/pulso-digital
+ReadWritePaths=/opt/pulso-digital/current/content
 ReadWritePaths=/opt/pulso-digital/current/public
 ReadOnlyPaths=/etc/pulso-digital
 StandardOutput=journal

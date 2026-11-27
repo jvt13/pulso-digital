@@ -2,18 +2,31 @@
 set -euo pipefail
 
 readonly APP_NAME="pulso-digital"
-readonly APP_ROOT="/opt/pulso-digital"
+TEST_MODE="${PULSO_DEPLOY_TEST_MODE:-0}"
+if [[ ${TEST_MODE} == "1" ]]; then
+  TEST_ROOT="${PULSO_DEPLOY_TEST_ROOT:-}"
+  [[ ${TEST_ROOT} =~ ^/tmp/pulso-deploy-test\.[A-Za-z0-9._-]+$ ]] ||
+    { printf '[pulsobit] ERRO: PULSO_DEPLOY_TEST_ROOT inválido.\n' >&2; exit 1; }
+  readonly APP_ROOT="${TEST_ROOT}/opt/pulso-digital"
+  readonly STATE_ROOT="${TEST_ROOT}/var/lib/pulso-digital"
+  readonly CONFIG_ROOT="${TEST_ROOT}/etc/pulso-digital"
+  readonly WEB_ROOT="${TEST_ROOT}/var/www/pulso-digital"
+  readonly SERVICE_USER="${PULSO_DEPLOY_TEST_USER:-$(id -un)}"
+  readonly SERVICE_GROUP="$(id -gn "${SERVICE_USER}")"
+else
+  readonly APP_ROOT="/opt/pulso-digital"
+  readonly STATE_ROOT="/var/lib/pulso-digital"
+  readonly CONFIG_ROOT="/etc/pulso-digital"
+  readonly WEB_ROOT="/var/www/pulso-digital"
+  readonly SERVICE_USER="pulso-digital"
+  readonly SERVICE_GROUP="pulso-digital"
+fi
 readonly RELEASES_ROOT="${APP_ROOT}/releases"
 readonly CURRENT_LINK="${APP_ROOT}/current"
 readonly RUNTIME_ROOT="${APP_ROOT}/runtime"
 readonly VENV_ROOT="${APP_ROOT}/venv"
-readonly STATE_ROOT="/var/lib/pulso-digital"
-readonly CONFIG_ROOT="/etc/pulso-digital"
 readonly ENV_FILE="${CONFIG_ROOT}/pulso.env"
-readonly WEB_ROOT="/var/www/pulso-digital"
 readonly SERVICE_NAME="pulso-digital"
-readonly SERVICE_USER="pulso-digital"
-readonly SERVICE_GROUP="pulso-digital"
 readonly NODE_VERSION="24.22.3"
 readonly NODE_SHA256="4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb"
 readonly NODE_ROOT="${RUNTIME_ROOT}/node-v${NODE_VERSION}-linux-x64"
@@ -21,6 +34,7 @@ readonly NODE_BIN="${NODE_ROOT}/bin/node"
 readonly NPM_BIN="${NODE_ROOT}/bin/npm"
 readonly NPM_CLI="${NODE_ROOT}/lib/node_modules/npm/bin/npm-cli.js"
 readonly PYTHON_BIN="${VENV_ROOT}/bin/python"
+LAST_PUBLIC_BACKUP=""
 
 log() {
   printf '[pulsobit] %s\n' "$*"
@@ -32,6 +46,7 @@ die() {
 }
 
 require_root() {
+  [[ ${TEST_MODE} == "1" ]] && return 0
   [[ ${EUID} -eq 0 ]] || die "execute esta etapa como root por um terminal autorizado."
 }
 
@@ -121,17 +136,25 @@ current_release() {
 }
 
 run_as_service() {
-  runuser -u "${SERVICE_USER}" -- "$@"
+  if [[ ${TEST_MODE} == "1" ]]; then
+    "$@"
+  else
+    runuser -u "${SERVICE_USER}" -- "$@"
+  fi
 }
 
 run_npm() {
-  "${NODE_BIN}" "${NPM_CLI}" "$@"
+  PATH="${NODE_ROOT}/bin:${PATH}" \
+    npm_config_update_notifier=false \
+    npm_config_fund=false \
+    npm_config_audit=false \
+    "${NODE_BIN}" "${NPM_CLI}" "$@"
 }
 
 run_storage() {
   local release=$1
   shift
-  runuser -u "${SERVICE_USER}" -- env \
+  run_as_service env \
     PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
     PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
     PULSO_PYTHON_BIN="${PULSO_PYTHON_BIN}" \
@@ -142,25 +165,34 @@ verify_safe_state() {
   local release
   release=$(current_release)
   load_env
-  runuser -u "${SERVICE_USER}" -- env \
+  run_as_service env \
     PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
     PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
     "${NODE_BIN}" "${release}/tools/verify-safe-state.mjs" "${release}"
 }
 
 publish_public() {
-  local release=$1 backup stage
+  local release=$1 backup stage web_parent
+  LAST_PUBLIC_BACKUP=""
   [[ -f "${release}/dist/production/index.html" ]] ||
     die "artefato de produção ausente em ${release}/dist/production."
-  install -d -o root -g www-data -m 0755 "$(dirname "${WEB_ROOT}")"
+  web_parent=$(dirname "${WEB_ROOT}")
+  [[ -d ${web_parent} && ! -L ${web_parent} ]] ||
+    die "${web_parent} deve existir como diretório real compartilhado."
   stage="${WEB_ROOT}.stage.$$"
-  assert_under "${stage}" "/var/www"
+  assert_under "${stage}" "${web_parent}"
   [[ ! -e ${stage} ]] || die "staging inesperado já existe: ${stage}."
-  install -d -o root -g www-data -m 0755 "${stage}"
+  if [[ ${TEST_MODE} == "1" ]]; then
+    install -d -m 0750 "${stage}"
+  else
+    install -d -o "${SERVICE_USER}" -g www-data -m 0750 "${stage}"
+  fi
   cp -a "${release}/dist/production/." "${stage}/"
-  find "${stage}" -type d -exec chmod 0755 {} +
-  find "${stage}" -type f -exec chmod 0644 {} +
-  chown -R root:www-data "${stage}"
+  find "${stage}" -type d -exec chmod 0750 {} +
+  find "${stage}" -type f -exec chmod 0640 {} +
+  if [[ ${TEST_MODE} != "1" ]]; then
+    chown -R "${SERVICE_USER}:www-data" "${stage}"
+  fi
 
   if [[ -e ${WEB_ROOT} ]]; then
     backup="${STATE_ROOT}/backups/public-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -171,8 +203,66 @@ publish_public() {
       mv -- "${backup}" "${WEB_ROOT}"
       die "falha ao ativar conteúdo público; versão anterior restaurada."
     fi
+    LAST_PUBLIC_BACKUP="${backup}"
     log "backup público anterior: ${backup}"
   else
     mv -- "${stage}" "${WEB_ROOT}"
   fi
+}
+
+restore_public_backup() {
+  local backup=$1 failed
+  [[ -n ${backup} && -d ${backup} ]] || die "backup público válido não informado."
+  assert_under "${backup}" "${STATE_ROOT}/backups"
+  failed="${STATE_ROOT}/backups/public-rejected-$(date -u +%Y%m%dT%H%M%SZ)"
+  [[ ! -e ${failed} ]] || die "destino de preservação inesperado: ${failed}."
+  if [[ -e ${WEB_ROOT} ]]; then
+    mv -- "${WEB_ROOT}" "${failed}"
+  fi
+  mv -- "${backup}" "${WEB_ROOT}"
+  log "conteúdo público rejeitado preservado em ${failed}"
+}
+
+prepare_release_permissions() {
+  local release=$1
+  assert_under "${release}" "${RELEASES_ROOT}"
+  install -d -o root -g "${SERVICE_GROUP}" -m 0770 \
+    "${release}/content" \
+    "${release}/public" \
+    "${release}/public/assets"
+  chgrp -R "${SERVICE_GROUP}" "${release}/content" "${release}/public"
+  find "${release}/content" "${release}/public" -type d -exec chmod 2770 {} +
+  log "diretórios editoriais mutáveis preparados para ${SERVICE_USER}"
+}
+
+activate_staged_storage() {
+  local active_data=$1 activation=$2 snapshot_id=$3
+  if [[ -e ${active_data} ]]; then
+    [[ -d ${active_data} && ! -L ${active_data} ]] ||
+      die "storage/data ativo não é diretório real; ativação cancelada."
+    if [[ -n $(find "${active_data}" -mindepth 1 ! -type d -print -quit) ]]; then
+      die "storage/data contém arquivos, links ou estado ativo; ativação cancelada."
+    fi
+    if [[ -e "${active_data}/snapshots/${snapshot_id}" ]]; then
+      die "snapshot ${snapshot_id} já existe no estado ativo; nenhuma sobrescrita será feita."
+    fi
+    if [[ ${TEST_MODE} == "1" ]]; then
+      install -d -m 0750 "${active_data}/snapshots"
+    else
+      install -d -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" -m 0750 "${active_data}/snapshots"
+    fi
+    mv -- "${activation}/storage/data/operational.sqlcipher" "${active_data}/"
+    mv -- "${activation}/storage/data/operational.json" "${active_data}/"
+    if [[ -f "${activation}/storage/data/operational-migration.json" ]]; then
+      mv -- "${activation}/storage/data/operational-migration.json" "${active_data}/"
+    fi
+    mv -- "${activation}/storage/data/snapshots/${snapshot_id}" \
+      "${active_data}/snapshots/"
+  else
+    mv -- "${activation}/storage/data" "${active_data}"
+  fi
+  rmdir -- "${activation}/storage/data/snapshots" 2>/dev/null || true
+  rmdir -- "${activation}/storage/data" 2>/dev/null || true
+  rmdir -- "${activation}/storage" 2>/dev/null || true
+  rmdir -- "${activation}" 2>/dev/null || true
 }

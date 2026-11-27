@@ -24,9 +24,11 @@ const expectedScripts = [
   '90-install-nginx-bootstrap.sh',
   '91-issue-certificate.sh',
   '92-enable-nginx-tls.sh',
+  '93-install-renewal-hook.sh',
   '95-homologate-vps.sh',
   '96-switch-release.sh',
   '97-rollback-release.sh',
+  '99-verify-service-write.sh',
 ];
 
 function bashSyntax(file) {
@@ -69,6 +71,9 @@ test('scripts Bash passam em verificação sintática', () => {
     if (result.error?.code === 'ENOENT') continue;
     assert.equal(result.status, 0, `${name}: ${result.stderr}`);
   }
+  const hook = path.join(root, 'deploy/letsencrypt/renewal-hooks/deploy/pulsobit-nginx.sh');
+  const result = bashSyntax(hook);
+  if (result.error?.code !== 'ENOENT') assert.equal(result.status, 0, result.stderr);
 });
 
 test('Nginx é exclusivo do PulsoBit e não cria servidor default', () => {
@@ -89,6 +94,8 @@ test('Nginx é exclusivo do PulsoBit e não cria servidor default', () => {
 });
 
 test('scripts mantêm automação, IA, indexação e publicidade desativadas', () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(packageJson.version, '1.6.0');
   const site = JSON.parse(fs.readFileSync(path.join(root, 'site/environments.json'), 'utf8'));
   assert.equal(site.environments.production.indexing, false);
   assert.equal(site.environments.production.adsense, false);
@@ -113,4 +120,100 @@ test('bundle de migração não inclui chave ou .env no código gerador', () => 
   assert.match(text, /A automação local precisa estar pausada/);
   assert.doesNotMatch(text, /copyFileSync\([^)]*\.env/);
   assert.doesNotMatch(text, /['"]\.env['"]/);
+});
+
+test('publicação e restauração operam em raiz isolada sem alterar o pai compartilhado', () => {
+  const script = path.join(root, 'tests/deploy/publish-simulation.sh');
+  const command = process.platform === 'win32' ? 'wsl.exe' : 'bash';
+  const args = process.platform === 'win32'
+    ? ['/bin/bash', `/mnt/${script[0].toLowerCase()}${script.slice(2).replaceAll('\\', '/')}`]
+    : [script];
+  const result = spawnSync(command, args, {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /PUBLISH_SIMULATION_OK/);
+});
+
+test('dry-run do atualizador central funciona em raiz isolada e não troca release', () => {
+  const script = path.join(root, 'tests/deploy/update-dry-run-simulation.sh');
+  const command = process.platform === 'win32' ? 'wsl.exe' : 'bash';
+  const args = process.platform === 'win32'
+    ? ['/bin/bash', `/mnt/${script[0].toLowerCase()}${script.slice(2).replaceAll('\\', '/')}`]
+    : [script];
+  const result = spawnSync(command, args, {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /UPDATE_DRY_RUN_SIMULATION_OK/);
+});
+
+test('ativação inicial aceita árvore estrutural vazia e recusa arquivos existentes', () => {
+  const script = path.join(root, 'tests/deploy/import-activation-simulation.sh');
+  const command = process.platform === 'win32' ? 'wsl.exe' : 'bash';
+  const args = process.platform === 'win32'
+    ? ['/bin/bash', `/mnt/${script[0].toLowerCase()}${script.slice(2).replaceAll('\\', '/')}`]
+    : [script];
+  const result = spawnSync(command, args, {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /IMPORT_ACTIVATION_SIMULATION_OK/);
+});
+
+test('ativação do import aceita somente diretórios estruturais vazios', () => {
+  const lib = fs.readFileSync(path.join(scriptsDir, 'lib.sh'), 'utf8');
+  assert.match(lib, /find "\$\{active_data\}" -mindepth 1 ! -type d -print -quit/);
+  assert.match(lib, /snapshot \$\{snapshot_id\} já existe no estado ativo/);
+  assert.doesNotMatch(lib, /rmdir "\$\{active_data\}"/);
+  assert.match(lib, /find "\$\{active_data\}"[^\n]+! -type d/);
+  const activate = fs.readFileSync(path.join(scriptsDir, '61-activate-storage-import.sh'), 'utf8');
+  assert.match(activate, /activate_staged_storage "\$\{active_data\}" "\$\{activation\}" "\$\{snapshot_id\}"/);
+});
+
+test('atualização central oferece dry-run, checkpoint, confirmação e rollback automático', () => {
+  const update = fs.readFileSync(path.join(scriptsDir, '96-switch-release.sh'), 'utf8');
+  assert.match(update, /--dry-run/);
+  assert.match(update, /run_storage "\$\{current\}" checkpoint/);
+  assert.match(update, /Digite PREPARAR/);
+  assert.match(update, /Digite CONFIRMAR/);
+  assert.match(update, /on_exit_rollback/);
+  assert.match(update, /95-homologate-vps\.sh/);
+  assert.doesNotMatch(update, /npm_config_jobs/);
+  const rollback = fs.readFileSync(path.join(scriptsDir, '97-rollback-release.sh'), 'utf8');
+  assert.match(rollback, /--dry-run/);
+  assert.match(rollback, /Digite ROLLBACK/);
+  assert.match(rollback, /run_storage "\$\{current\}" checkpoint/);
+  assert.match(rollback, /banco e chave não foram alterados/);
+});
+
+test('Systemd usa limites na seção Unit e declara escrita Unix necessária', () => {
+  const text = fs.readFileSync(path.join(root, 'deploy/systemd/pulso-digital.service.example'), 'utf8');
+  const unit = text.match(/\[Unit\]([\s\S]*?)\[Service\]/)?.[1] || '';
+  const service = text.match(/\[Service\]([\s\S]*?)\[Install\]/)?.[1] || '';
+  assert.match(unit, /StartLimitIntervalSec=300/);
+  assert.match(unit, /StartLimitBurst=3/);
+  assert.doesNotMatch(service, /StartLimitIntervalSec|StartLimitBurst/);
+  assert.match(service, /ReadWritePaths=\/opt\/pulso-digital\/current\/content/);
+  assert.match(service, /ReadWritePaths=\/opt\/pulso-digital\/current\/public/);
+});
+
+test('Nginx bloqueia privados antes de cache e HTTPS usa hook verificado', () => {
+  const nginx = fs.readFileSync(path.join(root, 'deploy/nginx/pulsobit.tech.conf.example'), 'utf8');
+  const hidden = nginx.indexOf('location ~ (^|/)\\.');
+  const privateFiles = nginx.indexOf('sqlcipher|sqlite|db');
+  const assets = nginx.indexOf('location ~* \\.(?:css|js|svg');
+  assert.ok(hidden > 0 && hidden < assets);
+  assert.ok(privateFiles > 0 && privateFiles < assets);
+  assert.match(nginx, /location (?:\^~ )?\/\.well-known\/acme-challenge\//);
+  const certbot = fs.readFileSync(path.join(scriptsDir, '91-issue-certificate.sh'), 'utf8');
+  assert.match(certbot, /--webroot/);
+  assert.doesNotMatch(certbot, /--dns-cloudflare/);
+  const hook = fs.readFileSync(path.join(root, 'deploy/letsencrypt/renewal-hooks/deploy/pulsobit-nginx.sh'), 'utf8');
+  assert.match(hook, /nginx -t/);
+  assert.match(hook, /systemctl reload nginx/);
+  assert.match(hook, /RENEWED_LINEAGE/);
+});
+
+test('run_npm prioriza o Node independente e não usa npm_config_jobs', () => {
+  const text = fs.readFileSync(path.join(scriptsDir, 'lib.sh'), 'utf8');
+  assert.match(text, /PATH="\$\{NODE_ROOT\}\/bin:\$\{PATH\}"/);
+  assert.doesNotMatch(text, /npm_config_jobs/);
+  const dependencies = fs.readFileSync(path.join(scriptsDir, '30-install-dependencies.sh'), 'utf8');
+  assert.match(dependencies, /new Database\(':memory:'\)/);
+  assert.match(dependencies, /sqlite-native-memory-ok/);
 });

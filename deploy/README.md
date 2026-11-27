@@ -21,11 +21,13 @@ divergência.
 | `70-build-public.sh` | Gera e valida produção; publica somente com `--activate` | opcional |
 | `80-install-systemd.sh` | Instala e valida unidade, sem habilitar ou iniciar | sim |
 | `90-install-nginx-bootstrap.sh` | Cria vhost exclusivo temporário que retorna 503 sem TLS | sim |
-| `91-issue-certificate.sh` | Emite ou valida certificado via DNS-01 Cloudflare | certificado |
+| `91-issue-certificate.sh` | Emite ou valida certificado via HTTP-01 em webroot | certificado |
 | `92-enable-nginx-tls.sh` | Ativa vhost TLS após `nginx -t` | sim |
+| `93-install-renewal-hook.sh` | Instala hook de deploy e testa renovação simulada | hook Certbot |
 | `95-homologate-vps.sh` | Homologação somente leitura | não |
 | `96-switch-release.sh` | Troca release e público preservando banco | sim, exige `--confirm` |
 | `97-rollback-release.sh` | Retorna código/público a release anterior | sim, exige `--confirm` |
+| `99-verify-service-write.sh` | Valida escrita Unix com o usuário de serviço | temporária |
 
 ## Garantias
 

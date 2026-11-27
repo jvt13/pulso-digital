@@ -151,11 +151,11 @@ Use o exemplo `deploy/nginx/pulsobit.tech.conf.example`. Ele:
 - separa cache de assets;
 - inclui cabeçalhos básicos de segurança.
 
-Com proxy Cloudflare ativo, o desafio HTTP-01 pode não alcançar a origem diretamente.
-Priorize DNS-01 com credencial Cloudflare restrita e armazenada fora do repositório.
-Alterar temporariamente o proxy para DNS-only só deve ocorrer se autorizado. A condição
-final é Cloudflare `Full (strict)` com certificado válido também na origem; `Flexible`
-não é aceitável como solução definitiva.
+O procedimento homologado usa HTTP-01 com webroot `/var/www/letsencrypt`, preservado no
+vhost HTTP. DNS-01 permanece como alternativa para uma tarefa futuramente autorizada,
+com credencial Cloudflare restrita e armazenada fora do repositório. A condição final é
+Cloudflare `Full (strict)` com certificado válido também na origem; `Flexible` não é
+aceitável como solução definitiva.
 
 Validação futura:
 

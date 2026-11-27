@@ -3,6 +3,35 @@
 Este é o procedimento vigente para a PD-007.2. O operador executa os comandos pelo
 MobaXterm em uma sessão autenticada. O agente não acessa a VPS.
 
+## Atualização prioritária: 1.5.2 para 1.6.0
+
+A VPS já possui a primeira instalação. Não repita preparação, migração, Node, Python,
+certificado ou Nginx.
+
+1. Clone a release 1.6.0 em `/opt/pulso-digital/releases/1.6.0`.
+2. Confirme o commit publicado no relatório desta tarefa.
+3. Execute primeiro o planejamento:
+
+```bash
+sudo bash /opt/pulso-digital/releases/1.6.0/deploy/scripts/96-switch-release.sh \
+  --release /opt/pulso-digital/releases/1.6.0 \
+  --commit COMMIT_1_6_0 \
+  --dry-run
+```
+
+4. Se o plano estiver correto, execute o comando único de atualização:
+
+```bash
+sudo bash /opt/pulso-digital/releases/1.6.0/deploy/scripts/96-switch-release.sh \
+  --release /opt/pulso-digital/releases/1.6.0 \
+  --commit COMMIT_1_6_0 \
+  --confirm
+```
+
+O comando solicita `PREPARAR`, cria checkpoint, prepara e valida a release e depois
+solicita `CONFIRMAR`. Ele não atualiza Node/Python/Certbot, não altera o banco ou a
+chave e não reinicia Nginx, Systemd, PM2 ou PostgreSQL.
+
 ## 1. Pré-requisitos
 
 - Ubuntu 24.04 LTS, `x86_64`.
@@ -154,17 +183,40 @@ sudo systemctl is-active pulso-digital
 O esperado é `disabled` e `inactive`. Não execute `enable`, `start`, `restart` ou
 `--confirm-free-tier` nesta tarefa.
 
+Valide as permissões Unix efetivamente necessárias:
+
+```bash
+sudo bash deploy/scripts/99-verify-service-write.sh
+```
+
+O teste cria, renomeia e remove apenas arquivos temporários ocultos nos diretórios
+operacionais dedicados. Ele não usa `777`, não executa o serviço e não concede escrita
+em `/var/www` ou nos demais projetos.
+
 ## 9. Nginx e HTTPS
 
 ```bash
 sudo bash deploy/scripts/90-install-nginx-bootstrap.sh
 sudo bash deploy/scripts/91-issue-certificate.sh EMAIL \
-  /etc/letsencrypt/cloudflare-pulsobit.ini
+  /var/www/letsencrypt
 sudo bash deploy/scripts/92-enable-nginx-tls.sh
+sudo bash deploy/scripts/93-install-renewal-hook.sh
 ```
 
-O arquivo de credencial DNS-01 deve ter permissão `0400` ou `0600`, pertencer ao root e
-possuir somente permissão para a zona `pulsobit.tech`. Não use a chave global da conta.
+HTTP-01 é o método padrão e usa `/var/www/letsencrypt`, preservado no vhost HTTP para as
+renovações. DNS-01 permanece apenas como alternativa para uma futura tarefa autorizada;
+nenhum token Cloudflare é necessário nesta implantação.
+
+O hook de deploy executa `nginx -t`, encerra em falha real e só recarrega o Nginx após
+sucesso. O script `93` executa `certbot renew --dry-run --run-deploy-hooks` para
+homologar a renovação.
+
+Confirme o reload e a mensagem do hook com:
+
+```bash
+journalctl -t pulsobit-certbot --since today --no-pager
+systemctl list-timers certbot.timer --no-pager
+```
 
 Depois da validação na origem, configure somente `pulsobit.tech` como Cloudflare
 `Full (strict)`. Não altere DNS nem o modo SSL/TLS de outros domínios.
@@ -191,31 +243,63 @@ Registre:
 
 ## 11. Atualização
 
-Prepare outro diretório em `/opt/pulso-digital/releases/`.
+Baixe a nova release em `/opt/pulso-digital/releases/` e confira o commit:
 
 ```bash
-sudo bash deploy/scripts/96-switch-release.sh \
-  /opt/pulso-digital/releases/NOVA_VERSAO --confirm
+sudo git -C /opt/pulso-digital/releases/NOVA_VERSAO rev-parse HEAD
 ```
 
-O script:
+Primeiro execute o planejamento:
 
-1. exige serviço inativo e automação pausada;
-2. exige versão maior;
-3. copia `content/` e `public/` mutáveis da release atual;
-4. instala dependências, gera e valida produção;
-5. troca o symlink e o público;
-6. não toca no banco, chave ou snapshots.
+```bash
+sudo bash /opt/pulso-digital/releases/NOVA_VERSAO/deploy/scripts/96-switch-release.sh \
+  --release /opt/pulso-digital/releases/NOVA_VERSAO \
+  --commit COMMIT_ALVO \
+  --dry-run
+```
+
+Após revisar, execute o modo de aplicação:
+
+```bash
+sudo bash /opt/pulso-digital/releases/NOVA_VERSAO/deploy/scripts/96-switch-release.sh \
+  --release /opt/pulso-digital/releases/NOVA_VERSAO \
+  --commit COMMIT_ALVO \
+  --confirm
+```
+
+O comando:
+
+1. valida versão, commit e recursos;
+2. verifica banco, contagens, automação pausada e IA desativada;
+3. exige a confirmação `PREPARAR`;
+4. cria checkpoint consistente;
+5. preserva catálogo e assets em `content/` e `public/`;
+6. reutiliza `node_modules` quando o lockfile não mudou ou executa `npm ci` com PATH isolado;
+7. gera e valida produção;
+8. apresenta o resumo e exige `CONFIRMAR`;
+9. troca symlink e público;
+10. executa verificações pós-atualização e restaura código/público automaticamente em falha.
+
+Node.js, Python, Certbot, certificados, usuário, banco, chave, Systemd, Nginx e
+configurações globais não são reinstalados ou reiniciados.
 
 ## 12. Rollback
 
 ```bash
-sudo bash deploy/scripts/97-rollback-release.sh \
-  /opt/pulso-digital/releases/RELEASE_ANTERIOR --confirm
+sudo bash /opt/pulso-digital/current/deploy/scripts/97-rollback-release.sh \
+  --release /opt/pulso-digital/releases/RELEASE_ANTERIOR \
+  --commit COMMIT_ANTERIOR \
+  --dry-run
+
+sudo bash /opt/pulso-digital/current/deploy/scripts/97-rollback-release.sh \
+  --release /opt/pulso-digital/releases/RELEASE_ANTERIOR \
+  --commit COMMIT_ANTERIOR \
+  --confirm
 ```
 
-O rollback troca somente código e conteúdo público. Banco, marcador, snapshots,
-históricos e chave não são revertidos automaticamente.
+O rollback cria checkpoint, preserva o catálogo atual ao reconstruir a release anterior,
+solicita `ROLLBACK`, troca código e público e reverte automaticamente se a verificação
+falhar. Banco, marcador, snapshots, históricos e chave não são revertidos automaticamente.
 
 ## 13. Encerramento seguro
 

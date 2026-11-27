@@ -26,9 +26,13 @@ if [[ -e ${enabled} && ! -L ${enabled} ]]; then
 fi
 created_link=false
 backup=""
-if [[ -e ${available} ]] && ! cmp -s "${source_conf}" "${available}"; then
-  backup="${STATE_ROOT}/backups/nginx-pulsobit.$(date -u +%Y%m%dT%H%M%SZ).conf"
-  install -o root -g root -m 0644 "${available}" "${backup}"
+previous_existed=false
+if [[ -e ${available} ]]; then
+  previous_existed=true
+  if ! cmp -s "${source_conf}" "${available}"; then
+    backup="${STATE_ROOT}/backups/nginx-pulsobit.$(date -u +%Y%m%dT%H%M%SZ).conf"
+    install -o root -g root -m 0644 "${available}" "${backup}"
+  fi
 fi
 install -o root -g root -m 0644 "${source_conf}" "${available}"
 if [[ ! -L ${enabled} ]]; then
@@ -42,7 +46,7 @@ if ! nginx -t; then
   fi
   if [[ -n ${backup} ]]; then
     install -o root -g root -m 0644 "${backup}" "${available}"
-  else
+  elif [[ ${previous_existed} == false ]]; then
     rm -f -- "${available}"
   fi
   die "nginx -t falhou; configuração nova removida e Nginx não foi recarregado."

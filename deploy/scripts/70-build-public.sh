@@ -7,6 +7,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 require_root
 require_ubuntu_2404
+require_service_user
 require_node_runtime
 require_release
 
@@ -23,6 +24,7 @@ esac
   run_npm run build:production
   run_npm run verify:production
 )
+prepare_release_permissions "${root}"
 
 if [[ ${activate} == true ]]; then
   load_env

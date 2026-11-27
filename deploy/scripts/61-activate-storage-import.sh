@@ -70,12 +70,7 @@ runuser -u "${SERVICE_USER}" -- env \
   "${NODE_BIN}" "${root}/tools/verify-expected-state.mjs" "${root}" "${root}/deploy/pd0072-expected-counts.json"
 
 active_data="${STATE_ROOT}/storage/data"
-if [[ -d ${active_data} ]] && [[ -n $(find "${active_data}" -mindepth 1 -print -quit) ]]; then
-  die "diretório ativo não está vazio; ativação cancelada."
-fi
-rmdir "${active_data}"
-mv -- "${activation}/storage/data" "${STATE_ROOT}/storage/data"
-rmdir -- "${activation}/storage" "${activation}"
+activate_staged_storage "${active_data}" "${activation}" "${snapshot_id}"
 
 run_storage "${root}" verify
 runuser -u "${SERVICE_USER}" -- env \

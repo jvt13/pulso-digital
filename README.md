@@ -1,4 +1,4 @@
-# PulsoBit — v1.5.2
+# PulsoBit — v1.6.0
 
 Portal editorial em português com 8 matérias públicas, 5 editorias e busca. O nome
 técnico e o repositório continuam `pulso-digital`; a marca pública é **PulsoBit** e o
@@ -103,7 +103,7 @@ domínio de produção é `https://pulsobit.tech`.
 `content/articles.json`: fonte única das matérias, com slug, categoria, título, resumo, data de publicação, data do fato opcional, tags, imagem, seções e fontes. `src/build.mjs`: gerador. `src/art.mjs`: arte conceitual local. `public/assets`: CSS, JS e imagens. `public/`: saída pronta para servir.
 
 ## Automação editorial supervisionada
-O orquestrador da versão 1.5.2 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
+O orquestrador da versão 1.6.0 coordena radar, seleção, pesquisa, evidências, redação, validação determinística, revisão independente, preparação de imagem, importação privada e elegibilidade de publicação. A automação inicia pausada, não aprova, não publica e mantém a IA real desativada por padrão. Resultados de revisão `changes-required`, imagem pendente ou aprovação ausente bloqueiam publicação. Não republicar feeds ou artigos; usar tendências como sinal de interesse, não como fonte factual. A seleção “No radar” atual é editorial, não um ranking real.
 
 ### Publicação controlada
 

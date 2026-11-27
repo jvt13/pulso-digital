@@ -22,7 +22,8 @@ log "instalando dependências fixadas no release ${root}"
 
 (
   cd -- "${root}"
-  "${NODE_BIN}" -e "import('better-sqlite3-multiple-ciphers').then(()=>console.log('sqlite-native-ok'))"
+  runuser -u "${SERVICE_USER}" -- env PATH="${NODE_ROOT}/bin:${PATH}" \
+    "${NODE_BIN}" -e "import('better-sqlite3-multiple-ciphers').then(({default:Database})=>{const db=new Database(':memory:');db.exec('CREATE TABLE probe(value TEXT)');db.prepare('INSERT INTO probe VALUES (?)').run('ok');const row=db.prepare('SELECT value FROM probe').get();if(row.value!=='ok')throw new Error('sqlite probe failed');db.close();console.log('sqlite-native-memory-ok')})"
 )
 
 log "dependências e módulo SQLite validados; nenhuma dependência global alterada"

@@ -31,7 +31,7 @@ install -d -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" -m 0750 \
   "${STATE_ROOT}/backups" \
   "${STATE_ROOT}/import"
 install -d -o root -g "${SERVICE_GROUP}" -m 0750 "${CONFIG_ROOT}"
-install -d -o root -g www-data -m 0755 "${WEB_ROOT}"
+install -d -o "${SERVICE_USER}" -g www-data -m 0750 "${WEB_ROOT}"
 
 assert_not_symlink "${APP_ROOT}"
 assert_not_symlink "${STATE_ROOT}"
