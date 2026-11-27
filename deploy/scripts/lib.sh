@@ -51,6 +51,7 @@ require_root() {
 }
 
 require_ubuntu_2404() {
+  [[ ${TEST_MODE} == "1" ]] && return 0
   [[ -r /etc/os-release ]] || die "não foi possível identificar o sistema operacional."
   # shellcheck disable=SC1091
   . /etc/os-release

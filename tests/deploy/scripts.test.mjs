@@ -226,3 +226,10 @@ test('instalação usa prebuild SQLite sem executar scripts de dependências', (
   const workflow = fs.readFileSync(path.join(root, '.github/workflows/pages.yml'), 'utf8');
   assert.match(workflow, /npm ci --ignore-scripts/);
 });
+
+test('scripts operacionais exigem Ubuntu 24.04, mas simulações confinadas não', () => {
+  const lib = fs.readFileSync(path.join(scriptsDir, 'lib.sh'), 'utf8');
+  assert.match(lib, /require_ubuntu_2404\(\) \{\n  \[\[ \$\{TEST_MODE\} == "1" \]\] && return 0/);
+  assert.match(lib, /VERSION_ID:-} == "24\.04"/);
+  assert.match(lib, /PULSO_DEPLOY_TEST_MODE/);
+});
