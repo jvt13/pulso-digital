@@ -574,6 +574,28 @@ test('storage: ativação bloqueia fonte alterada após a migração', t => {
   assert.equal(fs.existsSync(path.join(fx.dir, 'storage/data/operational.json')), false);
 });
 
+test('storage: SQLite ativo cria checkpoint sem arquivos legados state.json', t => {
+  const fx = prepareOperationalFixture(t);
+  migrateOperational(fx.dir, fx.config, fx.packageJson, key);
+  activateOperational(fx.dir, fx.config, fx.packageJson, key);
+  fs.rmSync(path.join(fx.dir, 'radar/data/state.json'));
+  fs.rmSync(path.join(fx.dir, 'newsroom/data/state.json'));
+  fs.rmSync(path.join(fx.dir, 'editorial/data/records'), {recursive: true});
+  fs.rmSync(path.join(fx.dir, 'newsroom/data/images'), {recursive: true});
+  fs.rmSync(path.join(fx.dir, 'editorial/data/incoming'), {recursive: true});
+
+  const plan = checkpointPlan(fx.dir, fx.config);
+  assert.equal(plan.files > 0, true);
+  const created = createCheckpoint(fx.dir, fx.config, fx.packageJson, key);
+  const selected = selectSnapshot(fx.dir, fx.config);
+  const verified = verifySnapshot(selected.directory, key, fx.config);
+  assert.equal(created.snapshotId, selected.manifest.snapshotId);
+  assert.equal(verified.authenticated, true);
+  assert.equal(verified.metrics.counts.radarTopics, 1);
+  assert.equal(verified.metrics.counts.drafts, 1);
+  assert.equal(verified.metrics.counts.editorialRecords, 1);
+});
+
 test('storage: CLI operacional expõe migrate, compare, activate, status e metrics', t => {
   const fx = prepareOperationalFixture(t);
   const cli = path.join(root, 'src/storage/cli.mjs');

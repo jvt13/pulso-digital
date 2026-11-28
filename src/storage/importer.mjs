@@ -65,15 +65,17 @@ function stableRead(root, absolute, relative, config) {
   };
 }
 
-export function collectSourceFiles(root, config) {
+export function collectSourceFiles(root, config, {requiredFiles = config.sources.requiredFiles, omitFile = () => false} = {}) {
   const projectRoot = path.resolve(root);
   assertSourceIdle(projectRoot, config);
-  for (const required of config.sources.requiredFiles) {
+  for (const required of requiredFiles) {
+    if (omitFile(required)) continue;
     check(fs.existsSync(sourcePath(projectRoot, required)), 'SOURCE_REQUIRED', `Arquivo obrigatório ausente: ${required}.`);
   }
   const collected = new Map();
   function addFile(absolute) {
     const relative = logicalRelative(projectRoot, absolute);
+    if (omitFile(relative)) return;
     if (collected.has(relative)) return;
     const name = path.basename(absolute);
     if (excluded(relative, name, config)) return;

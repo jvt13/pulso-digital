@@ -560,7 +560,15 @@ function virtualFile(relative, content, category, modifiedAt) {
 
 export function collectOperationalSources(root, config, key, {readonly = true} = {}) {
   const storageConfig = readJson(path.join(root, 'storage/config.json'), 65536);
-  const base = collectSourceFiles(root, storageConfig);
+  const omitted = new Set(['radar/data/state.json', 'newsroom/data/state.json']);
+  const omitFile = (relative) => omitted.has(relative) ||
+    relative.startsWith('editorial/data/records/') ||
+    relative.startsWith('newsroom/data/images/') ||
+    relative.startsWith('editorial/data/incoming/');
+  const base = collectSourceFiles(root, storageConfig, {
+    requiredFiles: storageConfig.sources.requiredFiles.filter((relative) => !omitFile(relative)),
+    omitFile,
+  });
   let db;
   const loadedKey = loadKey(root, key);
   check(readOperationalMarker(root, config, {key: loadedKey}), 'BACKEND_NOT_ACTIVE', 'Backend SQLite operacional não está ativo.');

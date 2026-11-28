@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -168,7 +169,10 @@ test('ativação do import aceita somente diretórios estruturais vazios', () =>
 test('atualização central oferece dry-run, checkpoint, confirmação e rollback automático', () => {
   const update = fs.readFileSync(path.join(scriptsDir, '96-switch-release.sh'), 'utf8');
   assert.match(update, /--dry-run/);
-  assert.match(update, /run_storage "\$\{current\}" checkpoint/);
+  assert.match(update, /run_storage "\$\{target\}" checkpoint/);
+  assert.match(update, /run_storage "\$\{current\}" metrics --json/);
+  assert.match(update, /95-homologate-vps\.sh" pulsobit\.tech "\$\{baseline_file\}"/);
+  assert.doesNotMatch(update, /verify-expected-state\.mjs/);
   assert.match(update, /Digite PREPARAR/);
   assert.match(update, /Digite CONFIRMAR/);
   assert.match(update, /on_exit_rollback/);
@@ -178,7 +182,44 @@ test('atualização central oferece dry-run, checkpoint, confirmação e rollbac
   assert.match(rollback, /--dry-run/);
   assert.match(rollback, /Digite ROLLBACK/);
   assert.match(rollback, /run_storage "\$\{current\}" checkpoint/);
+  assert.match(rollback, /run_storage "\$\{current\}" metrics --json/);
+  assert.doesNotMatch(rollback, /verify-expected-state\.mjs/);
+  assert.match(rollback, /95-homologate-vps\.sh" pulsobit\.tech "\$\{baseline_file\}" "\$\{target\}"/);
   assert.match(rollback, /banco e chave não foram alterados/);
+  const homologation = fs.readFileSync(path.join(scriptsDir, '95-homologate-vps.sh'), 'utf8');
+  assert.match(homologation, /baseline_file=\$\{2:-\}/);
+  assert.match(homologation, /verify-metrics-baseline\.mjs/);
+});
+
+test('linha de base de métricas é dinâmica e bloqueia divergência', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulso-metrics-baseline-'));
+  t.after(() => fs.rmSync(dir, {recursive: true, force: true}));
+  const baseline = path.join(dir, 'baseline.json');
+  const current = path.join(dir, 'current.json');
+  const payload = {
+    ok: true,
+    result: {
+      backend: 'sqlite',
+      schemaVersion: 5,
+      sourceFingerprint: 'fingerprint-dinamico',
+      counts: {radarTopics: 901, drafts: 41},
+      statuses: {radarTopics: {queued: 901}},
+      ai: {calls: 77, chargedTokens: 12345},
+      operationalAssets: {files: 9, bytes: 1234},
+    },
+  };
+  fs.writeFileSync(baseline, JSON.stringify(payload));
+  fs.writeFileSync(current, JSON.stringify(payload));
+  const tool = path.join(root, 'tools/verify-metrics-baseline.mjs');
+  const passed = spawnSync(process.execPath, [tool, baseline, current], {encoding: 'utf8'});
+  assert.equal(passed.status, 0, passed.stderr);
+  assert.match(passed.stdout, /"dynamicBaseline": true/);
+
+  payload.result.counts.radarTopics = 902;
+  fs.writeFileSync(current, JSON.stringify(payload));
+  const blocked = spawnSync(process.execPath, [tool, baseline, current], {encoding: 'utf8'});
+  assert.equal(blocked.status, 1);
+  assert.match(blocked.stderr, /counts\.radarTopics/);
 });
 
 test('Systemd usa limites na seção Unit e declara escrita Unix necessária', () => {

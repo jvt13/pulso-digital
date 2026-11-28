@@ -54,6 +54,20 @@ A release nova recebe apenas código e dependências. Banco, marcador, journals,
 privadas, revisões e configurações permanecem em `/var/lib/pulso-digital` e
 `/etc/pulso-digital`.
 
+Quando o backend SQLite estiver ativo, `radar/data/state.json` e
+`newsroom/data/state.json` não são pré-requisitos do checkpoint. Os estados são lidos
+do banco cifrado; a coleta ignora também os registros e assets virtualizados no banco.
+Os arquivos legados continuam aceitos no modo JSON, mas não precisam existir em uma
+instalação cujo armazenamento migrado seja somente SQLite.
+
+O atualizador captura uma linha de base dinâmica de schema, contagens, estados e
+consumo antes da troca. A mesma referência é comparada depois da ativação. O arquivo
+estático de contagens é usado apenas no procedimento inicial de migração.
+
+O checkpoint de uma atualização a partir da 1.5.2 é criado com o código da release
+1.6.0 já preparado, pois a release instalada contém o coletor legado defeituoso. Isso
+não altera o banco ativo; apenas cria um snapshot consistente antes da troca.
+
 ## Rollback e recuperação
 
 O rollback de código é feito pelo symlink de release e pela cópia atômica do artefato

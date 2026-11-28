@@ -125,6 +125,34 @@ Para preparar uma release:
 O banco, a chave, os hashes editoriais, os journals e a configuração privada nunca são
 substituídos por uma nova release.
 
+## Atualização simplificada
+
+Depois de baixar e conferir a release:
+
+```bash
+sudo bash /opt/pulso-digital/releases/1.6.0/deploy/scripts/96-switch-release.sh \
+  --release /opt/pulso-digital/releases/1.6.0 \
+  --commit "$(git -C /opt/pulso-digital/releases/1.6.0 rev-parse HEAD)" \
+  --dry-run
+```
+
+O modo de aplicação usa o mesmo comando com `--confirm` e exige as respostas
+`PREPARAR` e `CONFIRMAR`. O atualizador:
+
+1. valida serviço parado, runtime, banco, chave e estado seguro;
+2. captura métricas atuais como referência dinâmica;
+3. prepara dependências da release inativa;
+4. cria checkpoint autenticado a partir do SQLite ativo;
+5. preserva catálogo e assets públicos;
+6. gera e valida produção;
+7. troca código e público de forma controlada;
+8. compara schema, contagens, estados e consumo com a referência;
+9. restaura código e público se a homologação falhar.
+
+Não são necessários arquivos legados `radar/data/state.json` ou
+`newsroom/data/state.json` quando o marcador SQLite está ativo. O rollback usa a mesma
+linha de base dinâmica e não reverte banco, chave ou snapshots.
+
 ## Systemd
 
 O exemplo está em `deploy/systemd/pulso-digital.service.example`. Ele usa:

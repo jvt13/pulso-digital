@@ -56,10 +56,7 @@ target_version=$("${NODE_BIN}" -e 'process.stdout.write(require(process.argv[1])
 systemctl is-active --quiet "${SERVICE_NAME}" 2>/dev/null &&
   die "serviço ${SERVICE_NAME} deve permanecer inativo durante a atualização."
 run_storage "${current}" verify
-run_as_service env \
-  PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
-  PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
-  "${NODE_BIN}" "${current}/tools/verify-expected-state.mjs" "${current}" "${current}/deploy/pd0072-expected-counts.json"
+run_storage "${current}" metrics --json >/dev/null
 verify_safe_state
 
 available_kb=$(df -Pk "${APP_ROOT}" | awk 'NR==2 {print $4}')
@@ -101,15 +98,16 @@ printf 'Digite PREPARAR para criar checkpoint e preparar a release: ' >/dev/tty
 IFS= read -r answer </dev/tty
 [[ ${answer} == "PREPARAR" ]] || die "preparação não confirmada."
 
-checkpoint_output=$(run_storage "${current}" checkpoint)
-checkpoint_id=$(printf '%s\n' "${checkpoint_output}" | sed -n 's/.*"snapshotId": "\([^"]*\)".*/\1/p' | head -n 1)
-[[ ${checkpoint_id} =~ ^[0-9]{8}T[0-9]{9}Z-[a-f0-9]{8}$ ]] ||
-  die "não foi possível confirmar o checkpoint pré-atualização."
-log "checkpoint criado: ${checkpoint_id}"
-
-install -d -o root -g "${SERVICE_GROUP}" -m 0770 "${target}/content" "${target}/public"
-cp -a "${current}/content/." "${target}/content/"
-cp -a "${current}/public/." "${target}/public/"
+baseline_file="${STATE_ROOT}/backups/update-baseline-$(date -u +%Y%m%dT%H%M%SZ)-${target_commit:0:12}.json"
+assert_under "${baseline_file}" "${STATE_ROOT}/backups"
+install -d -m 0700 "${STATE_ROOT}/backups"
+baseline_output=$(run_storage "${current}" metrics --json)
+(
+  umask 077
+  printf '%s\n' "${baseline_output}" >"${baseline_file}"
+)
+chmod 0600 "${baseline_file}"
+log "linha de base dinâmica capturada: ${baseline_file}"
 
 if [[ ${dependency_action} == "reuse-current-node_modules" && ! -d "${target}/node_modules" ]]; then
   cp -a "${current}/node_modules" "${target}/node_modules"
@@ -119,6 +117,23 @@ else
     run_npm ci --ignore-scripts
   )
 fi
+
+# O release 1.5.2 pode conter o coletor legado defeituoso. O checkpoint é sempre
+# criado pelo código do release alvo já corrigido, depois de suas dependências
+# estarem disponíveis. Nenhum estado operacional ativo é alterado nessa etapa.
+checkpoint_output=$(run_storage "${target}" checkpoint)
+checkpoint_id=$(printf '%s\n' "${checkpoint_output}" | sed -n 's/.*"snapshotId": "\([^"]*\)".*/\1/p' | head -n 1)
+[[ ${checkpoint_id} =~ ^[0-9]{8}T[0-9]{9}Z-[a-f0-9]{8}$ ]] ||
+  die "não foi possível confirmar o checkpoint pré-atualização."
+log "checkpoint criado: ${checkpoint_id}"
+
+if [[ ${TEST_MODE} == "1" ]]; then
+  install -d -m 0770 "${target}/content" "${target}/public"
+else
+  install -d -o root -g "${SERVICE_GROUP}" -m 0770 "${target}/content" "${target}/public"
+fi
+cp -a "${current}/content/." "${target}/content/"
+cp -a "${current}/public/." "${target}/public/"
 
 (
   cd -- "${target}"
@@ -180,12 +195,8 @@ if ! (
   run_as_service env \
     PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
     PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
-    "${NODE_BIN}" "${target}/tools/verify-expected-state.mjs" "${target}" "${target}/deploy/pd0072-expected-counts.json"
-  run_as_service env \
-    PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
-    PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
     "${NODE_BIN}" "${target}/tools/verify-safe-state.mjs" "${target}"
-  "${target}/deploy/scripts/95-homologate-vps.sh" pulsobit.tech
+  "${target}/deploy/scripts/95-homologate-vps.sh" pulsobit.tech "${baseline_file}"
 ); then
   die "verificação pós-atualização falhou; release anterior restaurada."
 fi

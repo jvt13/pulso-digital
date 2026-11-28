@@ -74,12 +74,27 @@ printf 'Digite ROLLBACK para confirmar: ' >/dev/tty
 IFS= read -r answer </dev/tty
 [[ ${answer} == "ROLLBACK" ]] || die "rollback não confirmado."
 
+baseline_file="${STATE_ROOT}/backups/rollback-baseline-$(date -u +%Y%m%dT%H%M%SZ)-${target_commit:0:12}.json"
+assert_under "${baseline_file}" "${STATE_ROOT}/backups"
+install -d -m 0700 "${STATE_ROOT}/backups"
+baseline_output=$(run_storage "${current}" metrics --json)
+(
+  umask 077
+  printf '%s\n' "${baseline_output}" >"${baseline_file}"
+)
+chmod 0600 "${baseline_file}"
+log "linha de base dinâmica capturada: ${baseline_file}"
+
 checkpoint_output=$(run_storage "${current}" checkpoint)
 checkpoint_id=$(printf '%s\n' "${checkpoint_output}" | sed -n 's/.*"snapshotId": "\([^"]*\)".*/\1/p' | head -n 1)
 [[ ${checkpoint_id} =~ ^[0-9]{8}T[0-9]{9}Z-[a-f0-9]{8}$ ]] ||
   die "checkpoint de rollback não confirmado."
 
-install -d -o root -g "${SERVICE_GROUP}" -m 0770 "${target}/content" "${target}/public"
+if [[ ${TEST_MODE} == "1" ]]; then
+  install -d -m 0770 "${target}/content" "${target}/public"
+else
+  install -d -o root -g "${SERVICE_GROUP}" -m 0770 "${target}/content" "${target}/public"
+fi
 cp -a "${current}/content/." "${target}/content/"
 cp -a "${current}/public/." "${target}/public/"
 current_lock=$(sha256sum "${current}/package-lock.json" | awk '{print $1}')
@@ -130,7 +145,7 @@ if ! (
     PULSO_STORAGE_KEY="${PULSO_STORAGE_KEY}" \
     PULSO_DATA_ROOT="${PULSO_DATA_ROOT}" \
     "${NODE_BIN}" "${target}/tools/verify-safe-state.mjs" "${target}"
-  "${target}/deploy/scripts/95-homologate-vps.sh" pulsobit.tech
+  "${current}/deploy/scripts/95-homologate-vps.sh" pulsobit.tech "${baseline_file}" "${target}"
 ); then
   die "verificação pós-rollback falhou; código anterior será restaurado."
 fi

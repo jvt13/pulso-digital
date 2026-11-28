@@ -227,10 +227,17 @@ restore_public_backup() {
 prepare_release_permissions() {
   local release=$1
   assert_under "${release}" "${RELEASES_ROOT}"
-  install -d -o root -g "${SERVICE_GROUP}" -m 0770 \
-    "${release}/content" \
-    "${release}/public" \
-    "${release}/public/assets"
+  if [[ ${TEST_MODE} == "1" ]]; then
+    install -d -m 0770 \
+      "${release}/content" \
+      "${release}/public" \
+      "${release}/public/assets"
+  else
+    install -d -o root -g "${SERVICE_GROUP}" -m 0770 \
+      "${release}/content" \
+      "${release}/public" \
+      "${release}/public/assets"
+  fi
   chgrp -R "${SERVICE_GROUP}" "${release}/content" "${release}/public"
   find "${release}/content" "${release}/public" -type d -exec chmod 2770 {} +
   log "diretórios editoriais mutáveis preparados para ${SERVICE_USER}"
